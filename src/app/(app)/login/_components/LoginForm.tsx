@@ -26,7 +26,7 @@ export default function LoginForm(): ReactElement {
 
     if (result.success) {
       // Redirect manually after successful login
-      router.push('/dashboard')
+      router.push('/')
     } else {
       // Display the error message
       setError(result.error || 'Login failed')

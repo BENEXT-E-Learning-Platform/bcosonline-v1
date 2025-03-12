@@ -1,11 +1,10 @@
 import React, { FC, ReactNode } from 'react'
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
-import './globals.css'
-import { getClient } from './_actions/getUser'
 import { redirect } from 'next/navigation'
 import { ThemeProvider } from 'next-themes'
-import { DirectionProvider } from './components/direction-provider'
+import { getClient } from './_actions/getClient'
+
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -34,11 +33,10 @@ export default async function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <DirectionProvider>{children}</DirectionProvider>
+      {children}
         </ThemeProvider>
       </body>
     </html>
   )
 }
 
-import './globals.css'

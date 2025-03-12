@@ -1,3 +1,4 @@
+import HeaderServer from "./header/actions/headerServer";
 import "./styles.css";
 import React, { ReactElement, ReactNode } from "react";
 
@@ -7,7 +8,8 @@ interface RootLayoutProps {
 
 export default function RootLayout({ children }: RootLayoutProps): ReactElement {
   return <html>
-      <body className="bg-black text-white">
+      <body>
+      <HeaderServer />
         {children}
       </body>
   </html>;
