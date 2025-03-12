@@ -203,15 +203,6 @@ export interface Media {
     };
     [k: string]: unknown;
   } | null;
-  /**
-   * Choose where this file will be uploaded in MinIO.
-   */
-  uploadFolder: 'media' | 'images' | 'documents';
-  originalFilename?: string | null;
-  /**
-   * Full URL to access this file
-   */
-  fileURL?: string | null;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -753,8 +744,6 @@ export interface Video {
   title: string;
   description?: string | null;
   duration?: number | null;
-  processingStatus?: ('not_processed' | 'queued' | 'processing' | 'complete' | 'failed') | null;
-  processingJobId?: string | null;
   hlsUrl?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -948,9 +937,6 @@ export interface PayloadMigration {
 export interface MediaSelect<T extends boolean = true> {
   alt?: T;
   caption?: T;
-  uploadFolder?: T;
-  originalFilename?: T;
-  fileURL?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;
@@ -1315,8 +1301,6 @@ export interface VideosSelect<T extends boolean = true> {
   title?: T;
   description?: T;
   duration?: T;
-  processingStatus?: T;
-  processingJobId?: T;
   hlsUrl?: T;
   updatedAt?: T;
   createdAt?: T;

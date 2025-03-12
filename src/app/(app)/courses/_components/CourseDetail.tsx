@@ -4,6 +4,7 @@ import { Course } from '@/collections/Courses/Courses'
 import React, { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
+import EnrollButton from './EnrollButton'
 
 interface Section {
   id: string
@@ -475,9 +476,10 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ course }) => {
                 >
                   {isPlaying ? 'Pause Course' : 'Start Course'}
                 </button>
-                <button className="w-full bg-white border border-[#253b74] text-[#253b74] py-3 rounded-lg font-semibold hover:bg-[#253b74]/10 transition-colors">
+                {/* }    <button className="w-full bg-white border border-[#253b74] text-[#253b74] py-3 rounded-lg font-semibold hover:bg-[#253b74]/10 transition-colors">
                   Enroll Now
-                </button>
+                </button>*/}
+                <EnrollButton courseId={course.id} />
               </div>
             </motion.div>
           </div>

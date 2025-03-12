@@ -34,7 +34,12 @@ async function getCourseData(courseId: string) {
 }
 
 // Server Component
-export default async function CourseDetailPage({ params }: { params: { courseId: string } }) {
+export default async function CourseDetailPage({
+  params: paramsPromise,
+}: {
+  params: { courseId: string }
+}) {
+  const params = await paramsPromise // Explicitly await to satisfy the check
   const course = await getCourseData(params.courseId)
 
   // If course is null, return a 404 page

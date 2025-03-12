@@ -1,4 +1,5 @@
 // collections/Participation.ts
+import { authenticated } from '@/access/authenticated'
 import type { CollectionConfig } from 'payload'
 
 export const Participation: CollectionConfig = {
@@ -9,8 +10,8 @@ export const Participation: CollectionConfig = {
     group: 'Clients',
   },
   access: {
-    create: ({ req: { user } }) => Boolean(user), // Authenticated clients can enroll
-    read: ({ req: { user } }) => (user ? { client: { equals: user.id.toString() } } : false), // Only read own enrollments
+    create: authenticated, // Authenticated clients can enroll
+    read: authenticated, // Only read own enrollments
     update: ({ req: { user } }) => (user ? { client: { equals: user.id.toString() } } : false), // Only read own enrollments
   },
   fields: [
