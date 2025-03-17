@@ -38,6 +38,7 @@ export const Media: CollectionConfig = {
     // Use a function to dynamically set the storage path based on file typ
     disableLocalStorage: true,
     adminThumbnail: 'thumbnail',
+
     imageSizes: [
       {
         name: 'thumbnail',

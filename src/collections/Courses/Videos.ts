@@ -30,18 +30,8 @@ export const Videos: CollectionConfig = {
         readOnly: true,
       },
     },
-
-    {
-      name: 'hlsUrl',
-      type: 'text',
-      admin: {
-        position: 'sidebar',
-        readOnly: true,
-      },
-    },
   ],
   upload: {
     mimeTypes: ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm'],
-    adminThumbnail: () => null,
   },
 }

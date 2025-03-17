@@ -21,7 +21,7 @@ export const ExcelBlock: Block = {
       name: 'excelFile',
       type: 'upload',
       required: true,
-      relationTo: 'media',
+      relationTo: 'file',
       label: 'Excel File',
     },
   ],

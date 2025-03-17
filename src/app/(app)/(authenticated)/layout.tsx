@@ -5,7 +5,6 @@ import { redirect } from 'next/navigation'
 import { ThemeProvider } from 'next-themes'
 import { getClient } from './_actions/getClient'
 
-
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
@@ -33,10 +32,9 @@ export default async function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-      {children}
+          {children}
         </ThemeProvider>
       </body>
     </html>
   )
 }
-

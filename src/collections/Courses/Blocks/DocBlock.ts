@@ -22,7 +22,7 @@ export const DocBlock: Block = {
       name: 'docFile',
       type: 'upload',
       required: true,
-      relationTo: 'media',
+      relationTo: 'file',
       label: 'Document File',
     },
   ],

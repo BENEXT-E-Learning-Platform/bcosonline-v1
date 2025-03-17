@@ -22,7 +22,7 @@ export const VideoBlock: Block = {
       name: 'videoFile',
       type: 'upload',
       required: true,
-      relationTo: 'media',
+      relationTo: 'videos',
       label: 'Video File',
     },
     {

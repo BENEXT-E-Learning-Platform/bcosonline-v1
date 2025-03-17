@@ -1,4 +1,3 @@
-// collections/Clients/individualAccount.ts
 import type { CollectionConfig } from 'payload'
 
 export const individualAccount: CollectionConfig = {

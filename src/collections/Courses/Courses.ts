@@ -6,8 +6,9 @@ import { VideoBlock } from './Blocks/VideoBlock'
 import { PDFBlock } from './Blocks/PDFBlock'
 import { ExcelBlock } from './Blocks/ExcelBlock'
 import { DocBlock } from './Blocks/DocBlock'
+import { ImageBlock } from './Blocks/ImageBlock'
 
-const contentBlocks: Block[] = [VideoBlock, PDFBlock, ExcelBlock, DocBlock, VideoBlock, QuizBlock]
+const contentBlocks: Block[] = [VideoBlock, PDFBlock, ExcelBlock, DocBlock, ImageBlock, QuizBlock]
 
 export const Courses: CollectionConfig = {
   slug: 'courses',
@@ -161,7 +162,7 @@ export const Courses: CollectionConfig = {
       relationTo: 'media',
       required: true,
     },
-    { name: 'videoPreview', label: 'Video Preview', type: 'relationship', relationTo: 'media' },
+    { name: 'videoPreview', label: 'Video Preview', type: 'relationship', relationTo: 'videos' },
     {
       name: 'enrollmentType',
       type: 'select',

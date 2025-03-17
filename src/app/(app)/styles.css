@@ -2,6 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
-.textInput {
-  @apply bg-black text-white border border-white/50 rounded p-2;
+@font-face {
+  font-family: "ExpoArabic-Bold";
+  src: url("https://db.onlinewebfonts.com/t/5a46b722115434b86e5e9719ff7f6f23.eot");
+  src: url("https://db.onlinewebfonts.com/t/5a46b722115434b86e5e9719ff7f6f23.eot?#iefix")format("embedded-opentype"),
+  url("https://db.onlinewebfonts.com/t/5a46b722115434b86e5e9719ff7f6f23.woff2")format("woff2"),
+  url("https://db.onlinewebfonts.com/t/5a46b722115434b86e5e9719ff7f6f23.woff")format("woff"),
+  url("https://db.onlinewebfonts.com/t/5a46b722115434b86e5e9719ff7f6f23.ttf")format("truetype"),
+  url("https://db.onlinewebfonts.com/t/5a46b722115434b86e5e9719ff7f6f23.svg#ExpoArabic-Bold")format("svg");
+}
+
+/* Apply the font to all elements */
+html body * {
+  font-family: "ExpoArabic-Bold" !important;
+font-weight: 700 !important; /* For bold weight */
 }

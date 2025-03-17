@@ -68,6 +68,7 @@ export interface Config {
   };
   blocks: {};
   collections: {
+    file: File;
     media: Media;
     categories: Category;
     users: User;
@@ -88,6 +89,7 @@ export interface Config {
   };
   collectionsJoins: {};
   collectionsSelect: {
+    file: FileSelect<false> | FileSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     categories: CategoriesSelect<false> | CategoriesSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
@@ -180,6 +182,25 @@ export interface BusinessAcountAuthOperations {
     email: string;
     password: string;
   };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "file".
+ */
+export interface File {
+  id: number;
+  alt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -426,7 +447,7 @@ export interface Course {
     };
   };
   coverPhoto: number | Media;
-  videoPreview?: (number | null) | Media;
+  videoPreview?: (number | null) | Video;
   enrollmentType: 'public' | 'private';
   isPaid: 'free' | 'paid';
   price?: number | null;
@@ -449,7 +470,7 @@ export interface Course {
                     | {
                         title: string;
                         description?: string | null;
-                        videoFile: number | Media;
+                        videoFile: number | Video;
                         duration?: number | null;
                         id?: string | null;
                         blockName?: string | null;
@@ -458,7 +479,7 @@ export interface Course {
                     | {
                         title: string;
                         description?: string | null;
-                        pdfFile: number | Media;
+                        pdfFile: number | File;
                         id?: string | null;
                         blockName?: string | null;
                         blockType: 'pdfContent';
@@ -466,7 +487,7 @@ export interface Course {
                     | {
                         title: string;
                         description?: string | null;
-                        excelFile: number | Media;
+                        excelFile: number | File;
                         id?: string | null;
                         blockName?: string | null;
                         blockType: 'excelContent';
@@ -474,10 +495,18 @@ export interface Course {
                     | {
                         title: string;
                         description?: string | null;
-                        docFile: number | Media;
+                        docFile: number | File;
                         id?: string | null;
                         blockName?: string | null;
                         blockType: 'docContent';
+                      }
+                    | {
+                        title: string;
+                        description?: string | null;
+                        imageFile: number | Media;
+                        id?: string | null;
+                        blockName?: string | null;
+                        blockType: 'imageContent';
                       }
                     | {
                         /**
@@ -523,6 +552,27 @@ export interface Course {
   createdBy?: (number | null) | User;
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "videos".
+ */
+export interface Video {
+  id: number;
+  title: string;
+  description?: string | null;
+  duration?: number | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
 }
 /**
  * Instructors for LMS courses
@@ -736,28 +786,6 @@ export interface Certificate {
   createdAt: string;
 }
 /**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "videos".
- */
-export interface Video {
-  id: number;
-  title: string;
-  description?: string | null;
-  duration?: number | null;
-  hlsUrl?: string | null;
-  updatedAt: string;
-  createdAt: string;
-  url?: string | null;
-  thumbnailURL?: string | null;
-  filename?: string | null;
-  mimeType?: string | null;
-  filesize?: number | null;
-  width?: number | null;
-  height?: number | null;
-  focalX?: number | null;
-  focalY?: number | null;
-}
-/**
  * Track exam submissions from clients
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -814,6 +842,10 @@ export interface ExamSubmission {
 export interface PayloadLockedDocument {
   id: number;
   document?:
+    | ({
+        relationTo: 'file';
+        value: number | File;
+      } | null)
     | ({
         relationTo: 'media';
         value: number | Media;
@@ -929,6 +961,24 @@ export interface PayloadMigration {
   batch?: number | null;
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "file_select".
+ */
+export interface FileSelect<T extends boolean = true> {
+  alt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1181,6 +1231,15 @@ export interface CoursesSelect<T extends boolean = true> {
                           id?: T;
                           blockName?: T;
                         };
+                    imageContent?:
+                      | T
+                      | {
+                          title?: T;
+                          description?: T;
+                          imageFile?: T;
+                          id?: T;
+                          blockName?: T;
+                        };
                     quizQuestion?:
                       | T
                       | {
@@ -1301,7 +1360,6 @@ export interface VideosSelect<T extends boolean = true> {
   title?: T;
   description?: T;
   duration?: T;
-  hlsUrl?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;

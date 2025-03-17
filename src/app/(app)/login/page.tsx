@@ -3,7 +3,6 @@ import { redirect } from 'next/navigation'
 import LoginForm from './_components/LoginForm'
 import { getClient } from '../(authenticated)/_actions/getClient'
 
-
 export default async function Page() {
   // Fetch the user using the getClient function
   const user = await getClient()
