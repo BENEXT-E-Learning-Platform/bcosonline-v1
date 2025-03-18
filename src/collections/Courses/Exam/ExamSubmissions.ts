@@ -330,32 +330,3 @@ export const ExamSubmissions: CollectionConfig = {
   },
   timestamps: true,
 }
-
-export interface ExamSubmission {
-  id: string
-  client: string | { id: string }
-  course: string | { id: string }
-  exam: string | { id: string }
-  answers: {
-    questionIndex: number
-    questionType: 'multiple-choice' | 'true-false' | 'short-answer'
-    selectedOptions?: {
-      optionIndex: number
-      selected: boolean
-    }[]
-    trueFalseResponses?: {
-      statementIndex: number
-      markedTrue: boolean
-    }[]
-    shortAnswerResponse?: string
-    isCorrect: boolean
-    pointsEarned: number
-  }[]
-  score?: number
-  submissionDate: string
-  timeSpent?: number
-  status: 'pending' | 'graded' | 'failed'
-  feedback?: any // text
-  createdAt: string
-  updatedAt: string
-}

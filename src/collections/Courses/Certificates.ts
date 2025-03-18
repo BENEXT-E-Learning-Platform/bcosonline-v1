@@ -62,13 +62,3 @@ export const Certificates: CollectionConfig = {
     ],
   },
 }
-
-export interface Certificate {
-  id: string
-  name: string
-  template: string // ID of the media file
-  description?: string
-  createdTo: string | { id: string }
-  createdAt: string
-  updatedAt: string
-}

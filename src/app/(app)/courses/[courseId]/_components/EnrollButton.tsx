@@ -4,7 +4,7 @@
 import { useState } from 'react'
 
 interface EnrollButtonProps {
-  courseId: string
+  courseId: number
 }
 
 export default function EnrollButton({ courseId }: EnrollButtonProps) {

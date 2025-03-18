@@ -1,9 +1,8 @@
-'use client'
-
 import { useState, useEffect } from 'react'
 import { IndividualAccount } from '@/payload-types'
 import ProfileAvatar from './_components/ProfileAvatar'
-import { Bell, Link, MessageSquare } from 'lucide-react'
+import { Bell, MessageSquare } from 'lucide-react'
+import Link from 'next/link'
 
 interface HeaderProps {
   user: IndividualAccount | null
@@ -31,36 +30,36 @@ const Header: React.FC<HeaderProps> = ({ user }) => {
       <div className="max-w-6xl mx-auto flex items-center justify-between px-4 py-3">
         {/* Logo and Brand */}
         <div className="flex items-center">
-          <a href="/dashboard" className="flex items-center group">
+          <Link href="/dashboard" className="flex items-center group">
             <div className="w-8 h-8 bg-[#91be3f] rounded flex items-center justify-center ml-2 group-hover:bg-white transition-colors duration-200">
               <span className="text-[#253b74] font-bold text-lg"></span>
             </div>
             <span className="text-[#253b74] font-semibold text-lg group-hover:text-[#91be3f] transition-colors duration-200">
               BCOS
             </span>
-          </a>
+          </Link>
         </div>
 
         {/* Navigation Links - Only visible on larger screens */}
         <div className="hidden md:flex items-center space-x-reverse space-x-6">
-          <a
+          <Link
             href="/features"
             className="text-[#253b74] hover:text-[#91be3f] transition-colors duration-200"
           >
             المميزات
-          </a>
-          <a
+          </Link>
+          <Link
             href="/courses"
             className="text-[#253b74] hover:text-[#91be3f] transition-colors duration-200"
           >
             الدورات
-          </a>
-          <a
+          </Link>
+          <Link
             href="/support"
             className="text-[#253b74] hover:text-[#91be3f] transition-colors duration-200"
           >
             الدعم
-          </a>
+          </Link>
         </div>
 
         {/* Right Side - User or Auth */}
@@ -82,18 +81,18 @@ const Header: React.FC<HeaderProps> = ({ user }) => {
             </>
           ) : (
             <>
-              <a
+              <Link
                 href="/login"
                 className="px-5 py-2 text-sm font-medium text-[#253b74] border border-[#253b74]/30 rounded-lg hover:bg-[#253b74]/10 transition-all duration-200"
               >
                 تسجيل الدخول
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/signup"
                 className="px-5 py-2 text-sm font-medium text-white bg-[#91be3f] rounded-lg hover:bg-[#91be3f]/90 transition-all duration-200 shadow-sm"
               >
                 إنشاء حساب
-              </a>
+              </Link>
             </>
           )}
         </div>

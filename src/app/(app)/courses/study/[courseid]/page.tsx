@@ -1,23 +1,16 @@
-// app/(app)/courses/study/[courseid]/page.tsx
+// app/(app)/courses/study/[courseId]/page.tsx
 import type { Metadata } from 'next'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import { Course as PayloadCourse } from '@/payload-types'
-import { notFound } from 'next/navigation'
-import { Course as ComponentCourse } from '@/collections/Courses/Courses'
+//import { notFound } from 'next/navigation'
 import CourseStudyPageServer from './CourseStudyPage.server'
 
 // Reuse the same converter function as detail page
-function convertCourseType(payloadCourse: PayloadCourse): ComponentCourse {
-  return {
-    ...payloadCourse,
-    id: String(payloadCourse.id),
-  } as unknown as ComponentCourse
-}
 
 async function getCourseData(courseId: string) {
   const payload = await getPayload({ config: configPromise })
-  let course: PayloadCourse | null = null
+  let course: PayloadCourse
 
   try {
     const courseRes = await payload.findByID({
@@ -25,21 +18,21 @@ async function getCourseData(courseId: string) {
       id: courseId,
       depth: 2,
     })
-    course = courseRes as unknown as PayloadCourse
+    course = courseRes as PayloadCourse
+    return course
   } catch (e) {
     console.error('Error fetching course:', e)
   }
-
-  return course ? convertCourseType(course) : null
 }
 
 // Generate dynamic metadata for the study page
 export async function generateMetadata({
   params,
 }: {
-  params: { courseid: string }
+  params: Promise<{ courseId: string }>
 }): Promise<Metadata> {
-  const course = await getCourseData(params.courseid)
+  const { courseId } = await params
+  const course = await getCourseData(courseId)
 
   if (!course) {
     return {
@@ -53,17 +46,23 @@ export async function generateMetadata({
   }
 }
 
-export default async function CourseStudyPage({ params }: { params: { courseid: string } }) {
-  const course = await getCourseData(params.courseid)
+export default async function CourseStudyPage({
+  params,
+}: {
+  params: Promise<{ courseId: string }>
+}) {
+  console.log('Params received:', params)
+  const { courseId } = await params
+  const course = await getCourseData(courseId)
 
-  if (!course) {
-    notFound()
-  }
+  // if (!course) {
+  //  notFound()
+  //}
 
   // Pass the courseId in params to match the expected props type
   return (
     <div className="w-full h-screen">
-      <CourseStudyPageServer params={{ courseid: params.courseid }} />
+      <CourseStudyPageServer params={{ courseId: String(course?.id) }} />
     </div>
   )
 }

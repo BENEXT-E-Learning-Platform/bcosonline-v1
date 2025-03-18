@@ -14,38 +14,6 @@ import type { ContentItem as ImportedContentItem } from './itemRenderer'
 // Update the imported type locally to include fileName
 type ExtendedContentItem = ImportedContentItem & { fileName?: string }
 
-interface ContentItem {
-  id: string
-  blockType: string
-  title: string
-  description?: string
-  videoUrl?: string
-}
-
-// Define possible block types
-type BlockType = 'videoContent' | 'quizQuestion'
-
-// Base content item interface
-interface BaseContentItem {
-  id: string
-  blockType: BlockType
-  title?: string
-  description?: string
-  videoUrl?: string
-}
-
-// Quiz specific content
-interface QuizContentItem extends BaseContentItem {
-  blockType: 'quizQuestion'
-  question?: string
-  explanation?: string
-}
-
-// Video specific content
-interface VideoContentItem extends BaseContentItem {
-  blockType: 'videoContent'
-  videoFile?: any
-}
 export interface ContentItemRendererProps {
   item: ExtendedContentItem
   key?: string

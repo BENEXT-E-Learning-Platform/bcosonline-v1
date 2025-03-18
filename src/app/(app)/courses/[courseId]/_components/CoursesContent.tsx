@@ -1,6 +1,6 @@
 'use client'
 
-import { Course } from '@/collections/Courses/Courses'
+import { Course } from '@/payload-types'
 import React from 'react'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
@@ -19,13 +19,16 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ course }) => {
         transition={{ duration: 0.5 }}
         className="relative aspect-w-16 aspect-h-9 rounded-lg overflow-hidden shadow-lg mb-8"
       >
-        <Image
-          src={course.coverPhoto}
-          alt={course.title}
-          layout="fill"
-          objectFit="cover"
-          className="transition-transform duration-700 hover:scale-105"
-        />
+        {typeof course.coverPhoto === 'object' && course.coverPhoto.sizes?.thumbnail?.url && (
+          <Image
+            src={course.coverPhoto.sizes?.thumbnail?.url || '/placeholder-course.jpg'}
+            alt={course.title}
+            width={course.coverPhoto.sizes?.thumbnail?.width || 500}
+            height={course.coverPhoto.sizes?.thumbnail?.height || 500}
+            objectFit="cover"
+            className="transition-transform duration-700 hover:scale-105"
+          />
+        )}
       </motion.div>
 
       {/* Main Content Grid */}
@@ -41,7 +44,10 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ course }) => {
           >
             <h1 className="text-3xl font-bold text-[#253b74] mb-2">{course.title}</h1>
             <p className="text-gray-600 mb-4">
-              {course.description.details.overview[0]?.point?.root?.children[0]?.text}
+              {course.description?.details?.overview?.[0]?.point?.root?.children?.[0]?.text &&
+              typeof course.description.details.overview[0].point.root.children[0].text === 'string'
+                ? course.description.details.overview[0].point.root.children[0].text
+                : ''}
             </p>
             <div className="flex items-center space-x-4 text-sm text-gray-600">
               <span>
@@ -60,7 +66,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ course }) => {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="space-y-4"
           >
-            {course.sections.map((section, index) => (
+            {course.sections?.map((section, index) => (
               <div key={index} className="bg-white p-4 rounded-lg shadow-sm">
                 <h3 className="font-semibold text-[#253b74]">{section.title}</h3>
                 {section.description && <p className="text-gray-600 mt-2">{section.description}</p>}

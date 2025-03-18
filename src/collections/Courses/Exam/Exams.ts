@@ -248,39 +248,3 @@ export const Exams: CollectionConfig = {
   },
   timestamps: true,
 }
-
-export interface ExamQuestion {
-  questionText: any // text
-  questionType: 'multiple-choice' | 'true-false' | 'short-answer'
-  points: number
-  multipleChoiceOptions?: {
-    optionText: string
-    isCorrect: boolean
-  }[]
-  trueFalseOptions?: {
-    statementText: string
-    isTrue: boolean
-  }[]
-  shortAnswer?: {
-    correctAnswer: string
-    caseSensitive: boolean
-    allowPartialMatch: boolean
-  }
-  explanation?: any // text
-}
-
-export interface Exam {
-  id: string
-  title: string
-  description?: string
-  timeLimit: number
-  passingScore: number
-  questions: ExamQuestion[]
-  randomizeQuestions: boolean
-  showResults: boolean
-  allowRetakes: boolean
-  maxAttempts?: number
-  status: 'draft' | 'published' | 'archived'
-  createdAt: string
-  updatedAt: string
-}

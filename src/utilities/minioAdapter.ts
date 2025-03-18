@@ -219,11 +219,6 @@ export const downloadFile = async (fileName: string): Promise<Buffer> => {
 
     return new Promise(async (resolve, reject) => {
       const chunks: Uint8Array[] = []
-      interface MinioDataStream extends NodeJS.ReadableStream {
-        on(event: 'error', listener: (err: Error) => void): this
-        on(event: 'data', listener: (chunk: Uint8Array) => void): this
-        on(event: 'end', listener: () => void): this
-      }
 
       const dataStream = await client.getObject(bucketName, fileName)
 

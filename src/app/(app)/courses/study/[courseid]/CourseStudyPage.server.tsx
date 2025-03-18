@@ -8,14 +8,9 @@ import CourseStudyPageClient from './CourseStudyPage.client'
 // Fetch course data
 async function getCourseData(courseId: string): Promise<PayloadCourse | null> {
   // Validate courseId format first
-  if (!courseId || typeof courseId !== 'string' || courseId.includes('.')) {
-    console.error('Invalid course ID format:', courseId)
-    return null
-  }
 
   try {
     const payload = await getPayload({ config: configPromise })
-    console.log('Fetching course with ID:', courseId)
 
     const courseRes = await payload.findByID({
       collection: 'courses',
@@ -23,15 +18,6 @@ async function getCourseData(courseId: string): Promise<PayloadCourse | null> {
       depth: 5, // Increase depth for nested relationships
     })
 
-    console.log('Course found with title:', courseRes?.title)
-
-    console.log(
-      courseRes?.sections?.[0]?.lessons?.[0].contentItems?.[0]?.blockType === 'videoContent'
-        ? typeof courseRes?.sections?.[0]?.lessons?.[0].contentItems?.[0].videoFile === 'object'
-          ? courseRes?.sections?.[0]?.lessons?.[0].contentItems?.[0].videoFile?.url
-          : ''
-        : '',
-    )
     return courseRes as unknown as PayloadCourse
   } catch (e) {
     console.error('Error fetching course:', e)
@@ -39,12 +25,12 @@ async function getCourseData(courseId: string): Promise<PayloadCourse | null> {
   }
 }
 
-export default async function CourseStudyPageServer({ params }: { params: { courseid: string } }) {
-  console.log('Course ID from params:', params.courseid)
+export default async function CourseStudyPageServer({ params }: { params: { courseId: string } }) {
+  console.log('Course ID from params:', params.courseId)
 
   try {
     // Handle potential course ID format issues
-    const courseId = params.courseid
+    const courseId = params.courseId
 
     // If the URL param is numeric but doesn't match the actual course ID format
     // This is a fix for when the URL shows /2 but the actual ID is 5
@@ -64,8 +50,8 @@ export default async function CourseStudyPageServer({ params }: { params: { cour
 
     // Check if the URL parameter doesn't match the actual course ID
     // This ensures the URL always reflects the correct course ID
-    if (params.courseid !== String(course.id) && course.id) {
-      console.log(`Redirecting from incorrect ID ${params.courseid} to correct ID ${course.id}`)
+    if (params.courseId !== String(course.id) && course.id) {
+      console.log(`Redirecting from incorrect ID ${params.courseId} to correct ID ${course.id}`)
       redirect(`/courses/study/${course.id}`)
       return null
     }

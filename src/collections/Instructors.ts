@@ -63,13 +63,3 @@ export const Instructors: CollectionConfig = {
 }
 
 // TypeScript Interface for Instructor
-export interface Instructor {
-  id: string
-  name: string
-  description?: string
-  email: string
-  photo?: string | { id: string } // Media reference
-  createdBy: string | { id: string }
-  createdAt: string
-  updatedAt: string
-}

@@ -1,26 +1,14 @@
 'use client'
 
-import { Course } from '@/collections/Courses/Courses'
 import React, { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import EnrollButton from './EnrollButton'
 
-interface Section {
-  id: string
-  title: string
-  description?: string
-  order: number
-  lessons: {
-    id: string
-    title: string
-    order: number
-    contentItems: any[]
-  }[]
-}
+import { Course as PayloadCourse } from '@/payload-types'
 
 interface CourseDetailProps {
-  course: Course
+  course: PayloadCourse
 }
 
 const CourseDetail: React.FC<CourseDetailProps> = ({ course }) => {
@@ -64,6 +52,16 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ course }) => {
     hidden: { opacity: 0, x: -10 },
     show: { opacity: 1, x: 0, transition: { duration: 0.3 } },
   }
+  const coverPhoto =
+    typeof course.coverPhoto === 'object' && course.coverPhoto?.url
+      ? course.coverPhoto.url
+      : '/placeholder.jpg'
+
+  const videoPreview =
+    typeof course.videoPreview === 'object' && course.videoPreview?.url
+      ? course.videoPreview.url
+      : ''
+  console.log(course.videoPreview)
 
   return (
     <motion.div
@@ -390,14 +388,14 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ course }) => {
                       animate="show"
                       className="space-y-4"
                     >
-                      {course.sections.map((section: Section) => (
+                      {course.sections?.map((section) => (
                         <motion.li
                           key={section.id}
                           variants={listItem}
                           className="bg-white p-4 rounded-lg shadow-sm"
                         >
                           <div
-                            onClick={() => toggleSection(section.id)}
+                            onClick={() => section.id && toggleSection(section.id)}
                             className="flex justify-between items-center cursor-pointer"
                           >
                             <h3 className="font-semibold text-[#253b74]">{section.title}</h3>
@@ -423,7 +421,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ course }) => {
                                 exit={{ opacity: 0, height: 0 }}
                                 className="mt-4 space-y-2"
                               >
-                                {section.lessons.map((lesson) => (
+                                {section.lessons?.map((lesson) => (
                                   <div
                                     key={lesson.id}
                                     className="flex items-center space-x-2 text-gray-600"
@@ -467,7 +465,27 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ course }) => {
               className="sticky top-8"
             >
               <div className="relative aspect-w-16 aspect-h-9 rounded-lg overflow-hidden shadow-lg">
-                <Image src={course.coverPhoto} alt={course.title} layout="fill" objectFit="cover" />
+                {coverPhoto ? (
+                  <>
+                    {videoPreview ? (
+                      // Render video player if videoPreview.url exists
+                      <video
+                        controls
+                        className="w-full h-full object-cover"
+                        src={videoPreview}
+                        poster={coverPhoto}
+                        // Optional: Show cover image as poster while video loads
+                      >
+                        Your browser does not support the video tag.
+                      </video>
+                    ) : (
+                      // Render cover image if videoPreview.url is null or undefined
+                      <Image src={coverPhoto} alt={course.title} width={500} height={380} />
+                    )}
+                  </>
+                ) : (
+                  <div className="bg-gray-200 w-full h-full"></div>
+                )}
               </div>
               <div className="mt-6 space-y-4">
                 <button

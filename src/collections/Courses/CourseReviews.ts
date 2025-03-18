@@ -1,4 +1,5 @@
 import { CollectionConfig } from 'payload'
+import { Coursereview } from '@/payload-types'
 
 export const CourseReviews: CollectionConfig = {
   slug: 'coursereviews',
@@ -125,7 +126,7 @@ export const CourseReviews: CollectionConfig = {
   ],
   hooks: {
     beforeChange: [
-      ({ req, data }: { req: any; data: Partial<CourseReview> }) => {
+      ({ req, data }: { req: any; data: Partial<Coursereview> }) => {
         if (req.user && !data.createdBy) {
           data.createdBy = req.user.id
         }
@@ -149,27 +150,4 @@ export const CourseReviews: CollectionConfig = {
       },
     ],
   },
-}
-
-// Updated Interface
-export interface Review {
-  user: string | { id: string; [key: string]: any }
-  rating: number
-  comment: string
-  status: 'pending' | 'approved' | 'rejected'
-  createdAt: string
-  helpful: number
-  isFeatured: boolean // Added to interface
-}
-
-export interface CourseReview {
-  id: string
-  courseTitle: string
-  course: string
-  overallRating: number
-  reviewCount: number
-  reviews: Review[]
-  createdBy: string | { id: string }
-  createdAt: string
-  updatedAt: string
 }
