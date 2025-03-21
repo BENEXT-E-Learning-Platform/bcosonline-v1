@@ -1,5 +1,5 @@
-// collections/Blocks/QuizQuestion.ts
-import { Block, ArrayFieldValidation } from 'payload'
+// collections/Blocks/QuizBlock.ts
+import { Block } from 'payload'
 
 export const QuizBlock: Block = {
   slug: 'quizQuestion',
@@ -57,14 +57,25 @@ export const QuizBlock: Block = {
             description: 'Check if this option is a correct answer',
           },
         },
+        {
+          name: 'feedback',
+          type: 'textarea',
+          label: 'Option Feedback',
+          admin: {
+            description: 'Optional feedback to show when this option is selected',
+          },
+        },
       ],
+      admin: {
+        description: 'Add answer options for this question',
+      },
       validate: (
         value: unknown[] | null | undefined,
-        { data }: { data: { questionType?: 'single' | 'multiple' } },
+        { siblingData }: { siblingData: { questionType?: 'single' | 'multiple' } },
       ): true | string => {
         // Ensure value is an array and not empty
-        if (!Array.isArray(value) || value.length === 0) {
-          return 'Options array must contain at least one item'
+        if (!Array.isArray(value) || value.length < 2) {
+          return 'At least two options are required for a quiz question'
         }
 
         // Type guard for option shape
@@ -84,7 +95,8 @@ export const QuizBlock: Block = {
         const correctCount = value.filter((option) => option.isCorrect).length
 
         // Validation based on questionType
-        const questionType = data?.questionType as 'single' | 'multiple' | undefined
+        const questionType = siblingData?.questionType
+
         if (questionType === 'single') {
           if (correctCount !== 1) {
             return 'Single-choice questions must have exactly one correct answer'
@@ -93,7 +105,7 @@ export const QuizBlock: Block = {
           if (correctCount < 1) {
             return 'Multiple-choice questions must have at least one correct answer'
           }
-        } else {
+        } else if (!questionType) {
           return 'Question type must be specified'
         }
 
@@ -108,17 +120,36 @@ export const QuizBlock: Block = {
         description: 'Optional explanation to display after the quiz is answered',
       },
     },
+    {
+      name: 'points',
+      type: 'number',
+      label: 'Points',
+      defaultValue: 1,
+      admin: {
+        description: 'Number of points this question is worth',
+      },
+    },
+    {
+      name: 'timeLimit',
+      type: 'number',
+      label: 'Time Limit (seconds)',
+      admin: {
+        description: 'Optional time limit for answering this question (in seconds)',
+      },
+    },
+    {
+      name: 'difficulty',
+      type: 'select',
+      label: 'Difficulty Level',
+      options: [
+        { label: 'Easy', value: 'easy' },
+        { label: 'Medium', value: 'medium' },
+        { label: 'Hard', value: 'hard' },
+      ],
+      defaultValue: 'medium',
+      admin: {
+        description: 'Difficulty level of this question',
+      },
+    },
   ],
-}
-
-// Updated Interface
-export interface QuizBlock {
-  blockType: 'quizQuestion'
-  question: string
-  questionType: 'single' | 'multiple'
-  options: {
-    text: string
-    isCorrect: boolean
-  }[]
-  explanation?: string
 }

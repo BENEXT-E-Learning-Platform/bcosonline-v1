@@ -212,7 +212,7 @@ export const Courses: CollectionConfig = {
           label: 'Make Section Public',
           defaultValue: false,
           admin: {
-            description: 'Allow authenticated users (non-enrolled) to view this section’s content.',
+            description: 'Allow authenticated users (non-enrolled) to view this sections content.',
           },
         },
         {
@@ -223,6 +223,26 @@ export const Courses: CollectionConfig = {
             { name: 'title', type: 'text', required: true, label: 'Lesson Title' },
             { name: 'description', type: 'textarea', label: 'Lesson Description' },
             {
+              name: 'id',
+              type: 'text',
+              required: true,
+              label: 'Lesson ID',
+              admin: {
+                description: 'Unique identifier for this lesson',
+              },
+              hooks: {
+                beforeValidate: [
+                  ({ value }) => {
+                    // Generate a unique ID if one doesn't exist
+                    if (!value) {
+                      return `lesson_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
+                    }
+                    return value
+                  },
+                ],
+              },
+            },
+            {
               name: 'order',
               type: 'number',
               required: true,
@@ -230,6 +250,17 @@ export const Courses: CollectionConfig = {
               label: 'Lesson Order',
             },
             { name: 'contentItems', type: 'blocks', label: 'Content Items', blocks: contentBlocks },
+            {
+              name: 'comments',
+              type: 'relationship',
+              relationTo: 'comments',
+              hasMany: true,
+              label: 'Comments',
+              admin: {
+                description: 'Comments associated with this lesson',
+                readOnly: true,
+              },
+            },
           ],
         },
       ],
@@ -258,6 +289,18 @@ export const Courses: CollectionConfig = {
       relationTo: 'users',
       access: { update: () => false },
       admin: { readOnly: true },
+    },
+    // Add this field to the Courses.ts fields array
+    {
+      name: 'reviews',
+      type: 'relationship',
+      relationTo: 'coursereviews',
+      hasMany: true,
+      label: 'Course Reviews',
+      admin: {
+        description: 'Reviews associated with this course',
+        position: 'sidebar',
+      },
     },
   ],
   hooks: {

@@ -329,6 +329,18 @@ export interface Comment {
    */
   course: number | Course;
   /**
+   * The index of the section containing the lesson (0-based)
+   */
+  sectionIndex: number;
+  /**
+   * The index of the lesson within the section (0-based)
+   */
+  lessonIndex: number;
+  /**
+   * The unique identifier for the lesson
+   */
+  lessonId: string;
+  /**
    * Format: sectionIndex.lessonIndex (e.g., "0.2" for first section, third lesson)
    */
   lessonPath: string;
@@ -336,7 +348,7 @@ export interface Comment {
    * Only approved comments will be displayed to users
    */
   status: 'pending' | 'approved' | 'rejected';
-  createdBy?: (number | null) | User;
+  createdBy?: (number | null) | IndividualAccount;
   postedAt?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -457,13 +469,14 @@ export interface Course {
         description?: string | null;
         order: number;
         /**
-         * Allow authenticated users (non-enrolled) to view this section’s content.
+         * Allow authenticated users (non-enrolled) to view this sections content.
          */
         isPublic?: boolean | null;
         lessons?:
           | {
               title: string;
               description?: string | null;
+              id: string | null;
               order: number;
               contentItems?:
                 | (
@@ -517,6 +530,9 @@ export interface Course {
                          * Choose whether this is a single-choice (one correct answer) or multiple-choice (one or more correct answers) question
                          */
                         questionType: 'single' | 'multiple';
+                        /**
+                         * Add answer options for this question
+                         */
                         options: {
                           /**
                            * Enter the text for this answer option (e.g., "Paris")
@@ -526,19 +542,38 @@ export interface Course {
                            * Check if this option is a correct answer
                            */
                           isCorrect?: boolean | null;
+                          /**
+                           * Optional feedback to show when this option is selected
+                           */
+                          feedback?: string | null;
                           id?: string | null;
                         }[];
                         /**
                          * Optional explanation to display after the quiz is answered
                          */
                         explanation?: string | null;
+                        /**
+                         * Number of points this question is worth
+                         */
+                        points?: number | null;
+                        /**
+                         * Optional time limit for answering this question (in seconds)
+                         */
+                        timeLimit?: number | null;
+                        /**
+                         * Difficulty level of this question
+                         */
+                        difficulty?: ('easy' | 'medium' | 'hard') | null;
                         id?: string | null;
                         blockName?: string | null;
                         blockType: 'quizQuestion';
                       }
                   )[]
                 | null;
-              id?: string | null;
+              /**
+               * Comments associated with this lesson
+               */
+              comments?: (number | Comment)[] | null;
             }[]
           | null;
         id?: string | null;
@@ -550,6 +585,10 @@ export interface Course {
    */
   exam?: (number | null) | Exam;
   createdBy?: (number | null) | User;
+  /**
+   * Reviews associated with this course
+   */
+  reviews?: (number | Coursereview)[] | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -658,6 +697,43 @@ export interface Exam {
   createdAt: string;
 }
 /**
+ * Course reviews and ratings from users
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "coursereviews".
+ */
+export interface Coursereview {
+  id: number;
+  /**
+   * Auto-generated from related course
+   */
+  title?: string | null;
+  course: number | Course;
+  overallRating: number;
+  reviewCount: number;
+  /**
+   * All reviews for this course
+   */
+  reviews?:
+    | {
+        rating: number;
+        comment?: string | null;
+        status: 'pending' | 'approved' | 'rejected';
+        createdAt?: string | null;
+        helpful?: number | null;
+        /**
+         * Check to feature this review on the course page
+         */
+        isFeatured?: boolean | null;
+        user: number | IndividualAccount;
+        id?: string | null;
+      }[]
+    | null;
+  createdBy?: (number | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "individualAccount".
  */
@@ -726,40 +802,6 @@ export interface BusinessAcount {
   loginAttempts?: number | null;
   lockUntil?: string | null;
   password?: string | null;
-}
-/**
- * Course reviews and ratings from users
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "coursereviews".
- */
-export interface Coursereview {
-  id: number;
-  courseTitle: string;
-  course: number | Course;
-  overallRating: number;
-  reviewCount: number;
-  /**
-   * All reviews for this course
-   */
-  reviews?:
-    | {
-        user: number | User;
-        rating: number;
-        comment?: string | null;
-        status: 'pending' | 'approved' | 'rejected';
-        createdAt?: string | null;
-        helpful?: number | null;
-        /**
-         * Check to feature this review on the course page
-         */
-        isFeatured?: boolean | null;
-        id?: string | null;
-      }[]
-    | null;
-  createdBy?: (number | null) | User;
-  updatedAt: string;
-  createdAt: string;
 }
 /**
  * Define certificate templates for courses
@@ -1096,6 +1138,9 @@ export interface UsersSelect<T extends boolean = true> {
 export interface CommentsSelect<T extends boolean = true> {
   content?: T;
   course?: T;
+  sectionIndex?: T;
+  lessonIndex?: T;
+  lessonId?: T;
   lessonPath?: T;
   status?: T;
   createdBy?: T;
@@ -1190,6 +1235,7 @@ export interface CoursesSelect<T extends boolean = true> {
           | {
               title?: T;
               description?: T;
+              id?: T;
               order?: T;
               contentItems?:
                 | T
@@ -1250,20 +1296,25 @@ export interface CoursesSelect<T extends boolean = true> {
                             | {
                                 text?: T;
                                 isCorrect?: T;
+                                feedback?: T;
                                 id?: T;
                               };
                           explanation?: T;
+                          points?: T;
+                          timeLimit?: T;
+                          difficulty?: T;
                           id?: T;
                           blockName?: T;
                         };
                   };
-              id?: T;
+              comments?: T;
             };
         id?: T;
       };
   instructor?: T;
   exam?: T;
   createdBy?: T;
+  reviews?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1320,20 +1371,20 @@ export interface BusinessAcountsSelect<T extends boolean = true> {
  * via the `definition` "coursereviews_select".
  */
 export interface CoursereviewsSelect<T extends boolean = true> {
-  courseTitle?: T;
+  title?: T;
   course?: T;
   overallRating?: T;
   reviewCount?: T;
   reviews?:
     | T
     | {
-        user?: T;
         rating?: T;
         comment?: T;
         status?: T;
         createdAt?: T;
         helpful?: T;
         isFeatured?: T;
+        user?: T;
         id?: T;
       };
   createdBy?: T;

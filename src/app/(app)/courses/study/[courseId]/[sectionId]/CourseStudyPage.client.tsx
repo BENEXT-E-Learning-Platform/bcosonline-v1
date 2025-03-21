@@ -1,25 +1,40 @@
+// app/(app)/courses/study/[courseid]/[sectionid]/CourseStudyPage.client.tsx
 'use client'
-
 import { useState, useEffect } from 'react'
 import { Course } from '@/payload-types'
 import { ChevronRight, ChevronLeft, CheckCircle, Circle, Menu } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import Image from 'next/image'
+
+import gravatar from 'gravatar'
+import { createComment, fetchCommentsForLesson } from './CourseStudyPage.server'
+import { Comment as PayloadComment } from '@/payload-types'
+import ContentItemRenderer from './itemRenderer'
 
 interface CourseStudyPageClientProps {
   course: Course
+  section: NonNullable<Course['sections']>[number]
 }
-import ContentItemRenderer from './itemRenderer'
-import type { ContentItem as ImportedContentItem } from './itemRenderer'
-
-// Update the imported type locally to include fileName
-type ExtendedContentItem = ImportedContentItem & { fileName?: string }
-
-export interface ContentItemRendererProps {
-  item: ExtendedContentItem
-  key?: string
+interface ExtendedContentItem {
+  id: string
+  blockType: string
+  title?: string
+  description?: string
+  videoUrl?: string
+  pdfUrl?: string
+  excelUrl?: string
+  docUrl?: string
+  fileName?: string
+  fileType?: string
+  question?: string
+  options?: { text: string; isCorrect: boolean; feedback?: string }[]
+  explanation?: string
+  questionType?: 'single' | 'multiple'
 }
-
-function extractFileInfo(fileData: any, defaultType: string = '') {
+const extractFileInfo = (
+  fileData: any,
+  defaultType: string = '',
+): { fileName: string; fileType: string } => {
   let fileName = ''
   let fileType = defaultType
 
@@ -38,7 +53,7 @@ function extractFileInfo(fileData: any, defaultType: string = '') {
       }
     }
   }
-  // Various object formats
+  // Handle object formats (e.g., file objects with URL or filename properties)
   else if (typeof fileData === 'object' && fileData !== null) {
     if ('url' in fileData && fileData.url) {
       fileName = fileData.url
@@ -60,14 +75,15 @@ function extractFileInfo(fileData: any, defaultType: string = '') {
 
   return { fileName, fileType }
 }
-
-const CourseStudyPageClient = ({ course }: CourseStudyPageClientProps) => {
-  const [currentSectionIndex, setCurrentSectionIndex] = useState(0)
+const CourseStudyPageClient = ({ course, section }: CourseStudyPageClientProps) => {
   const [currentLessonIndex, setCurrentLessonIndex] = useState(0)
-  const [expandedSection, setExpandedSection] = useState<number | null>(0)
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [completedLessons, setCompletedLessons] = useState<Set<string>>(new Set())
   const [isLoading, setIsLoading] = useState(false)
+  const [comments, setComments] = useState<PayloadComment[]>([])
+  const [newComment, setNewComment] = useState('')
+  const [expandedSection, setExpandedSection] = useState<number | null>(0)
+  const [currentSectionIndex, setCurrentSectionIndex] = useState(0)
 
   // Save progress to localStorage
   useEffect(() => {
@@ -75,47 +91,40 @@ const CourseStudyPageClient = ({ course }: CourseStudyPageClientProps) => {
       localStorage.setItem(
         `course-progress-${course.id}`,
         JSON.stringify({
-          sectionIndex: currentSectionIndex,
+          sectionId: section.order,
           lessonIndex: currentLessonIndex,
           completedLessons: Array.from(completedLessons),
         }),
       )
     }
-  }, [currentSectionIndex, currentLessonIndex, completedLessons, course])
+  }, [currentLessonIndex, completedLessons, course, section])
 
   // Load progress from localStorage
   useEffect(() => {
     if (course) {
-      const savedProgress = localStorage.getItem(`course-progress-${course.id}`)
+      const savedProgress = localStorage.getItem(`course-progress-${course.id}-${section.order}`)
       if (savedProgress) {
-        const {
-          sectionIndex,
-          lessonIndex,
-          completedLessons: savedCompletedLessons,
-        } = JSON.parse(savedProgress)
-        setCurrentSectionIndex(sectionIndex)
+        const { lessonIndex, completedLessons: savedCompletedLessons } = JSON.parse(savedProgress)
         setCurrentLessonIndex(lessonIndex)
-        setExpandedSection(sectionIndex)
         setCompletedLessons(new Set(savedCompletedLessons))
       }
     }
-  }, [course])
+  }, [course, section])
 
   // Calculate progress percentage
   const calculateProgress = () => {
-    if (!course?.sections) return 0
+    if (!section?.lessons) return 0
 
     let completedItems = 0
     let totalItems = 0
+    type Lesson = NonNullable<NonNullable<Course['sections']>[number]['lessons']>[number]
 
-    course.sections.forEach((section) => {
-      section.lessons?.forEach((_, lIndex) => {
-        totalItems++
-        const lessonId = `${section.id}-${lIndex}`
-        if (completedLessons.has(lessonId)) {
-          completedItems++
-        }
-      })
+    section.lessons?.forEach((lesson: Lesson, lIndex: number) => {
+      totalItems++
+      const lessonId = `${section.id}-${lIndex}`
+      if (completedLessons.has(lessonId)) {
+        completedItems++
+      }
     })
 
     return totalItems > 0 ? Math.floor((completedItems / totalItems) * 100) : 0
@@ -123,23 +132,17 @@ const CourseStudyPageClient = ({ course }: CourseStudyPageClientProps) => {
 
   // Mark a lesson as completed
   const markLessonAsCompleted = () => {
-    const lessonId = `${course.sections?.[currentSectionIndex]?.id}-${currentLessonIndex}`
+    const lessonId = `${section.id}-${currentLessonIndex}`
     setCompletedLessons((prev) => new Set(prev).add(lessonId))
   }
 
   // Navigation handlers
   const navigateToPrevious = () => {
-    if (!course || !course.sections) return
+    if (!section?.lessons) return
     setIsLoading(true)
 
     if (currentLessonIndex > 0) {
       setCurrentLessonIndex(currentLessonIndex - 1)
-    } else if (currentSectionIndex > 0) {
-      const prevSectionIndex = currentSectionIndex - 1
-      const prevSection = course.sections[prevSectionIndex]
-      setCurrentSectionIndex(prevSectionIndex)
-      setExpandedSection(prevSectionIndex)
-      setCurrentLessonIndex(prevSection?.lessons?.length ? prevSection.lessons.length - 1 : 0)
     }
 
     // Simulate loading time for content transition
@@ -147,33 +150,29 @@ const CourseStudyPageClient = ({ course }: CourseStudyPageClientProps) => {
   }
 
   const navigateToNext = () => {
-    if (!course?.sections) return
+    if (!section?.lessons) return
     setIsLoading(true)
 
-    const currentSection = course.sections[currentSectionIndex]
-    if (!currentSection?.lessons) return
-
-    if (currentLessonIndex < currentSection.lessons.length - 1) {
+    if (currentLessonIndex < section.lessons.length - 1) {
       setCurrentLessonIndex(currentLessonIndex + 1)
-    } else if (currentSectionIndex < course.sections.length - 1) {
-      setCurrentSectionIndex(currentSectionIndex + 1)
-      setExpandedSection(currentSectionIndex + 1)
-      setCurrentLessonIndex(0)
     }
 
     // Simulate loading time for content transition
     setTimeout(() => setIsLoading(false), 300)
   }
 
-  const currentSection = course.sections?.[currentSectionIndex] ?? { lessons: [] }
-  const currentLesson = currentSection?.lessons?.[currentLessonIndex] ?? {
+  const navigateToSection = (sectionOrder: number) => {
+    window.location.href = `/courses/study/${course.id}/${sectionOrder}`
+  }
+  const handleSectionClick = (sectionIndex: number, sectionOrder: number) => {
+    setExpandedSection(sectionOrder)
+    navigateToSection(sectionOrder)
+  }
+
+  const currentLesson = section?.lessons?.[currentLessonIndex] ?? {
     title: '',
     description: '',
     contentItems: [],
-  }
-
-  const toggleSection = (index: number) => {
-    setExpandedSection(expandedSection === index ? null : index)
   }
 
   const toggleSidebar = () => {
@@ -181,6 +180,69 @@ const CourseStudyPageClient = ({ course }: CourseStudyPageClientProps) => {
   }
 
   const progress = calculateProgress()
+
+  // Handle comment submission
+  const [commentStatus, setCommentStatus] = useState<'idle' | 'pending' | 'success' | 'error'>(
+    'idle',
+  )
+
+  const fetchComments = async () => {
+    if (course) {
+      try {
+        const currentLesson = section?.lessons?.[currentLessonIndex]
+
+        if (!currentLesson?.id) {
+          console.error('Lesson ID not found')
+          setComments([])
+          return
+        }
+
+        const comments = await fetchCommentsForLesson({
+          courseId: course.id,
+          lessonId: currentLesson.id,
+          sectionIndex: 0, // Since we're fetching per section, sectionIndex is not needed
+          lessonIndex: currentLessonIndex,
+        })
+
+        setComments(Array.isArray(comments) ? comments : [])
+      } catch (error) {
+        console.error('Error fetching comments:', error)
+        setComments([])
+      }
+    }
+  }
+
+  const handleCommentSubmit = async () => {
+    if (!newComment.trim()) return
+
+    setCommentStatus('pending')
+
+    const currentLesson = section?.lessons?.[currentLessonIndex]
+    const lessonId = currentLesson?.id
+
+    if (!lessonId) {
+      console.error('Lesson ID not found')
+      setCommentStatus('error')
+      return
+    }
+
+    try {
+      await createComment({
+        content: newComment,
+        courseId: course.id,
+        lessonId: lessonId,
+        sectionIndex: 0, // Since we're fetching per section, sectionIndex is not needed
+        lessonIndex: currentLessonIndex,
+      })
+
+      setNewComment('')
+      setCommentStatus('success')
+      fetchComments() // Refresh comments list
+    } catch (error) {
+      console.error('Error submitting comment:', error)
+      setCommentStatus('error')
+    }
+  }
 
   return (
     <div className="flex flex-row h-screen w-screen overflow-hidden" dir="rtl">
@@ -206,7 +268,7 @@ const CourseStudyPageClient = ({ course }: CourseStudyPageClientProps) => {
 
         {/* Content Area */}
         <div
-          className="flex-1 overflow-y-auto" // Re-enable overflow-y-auto for internal scrolling
+          className="flex-1 overflow-y-auto"
           style={{
             height: 'calc(100vh - 64px - 120px)', // Fixed height to fit between header and progress bar
           }}
@@ -214,8 +276,6 @@ const CourseStudyPageClient = ({ course }: CourseStudyPageClientProps) => {
           {/* Lesson Content */}
           <div className="p-6">
             <div className="w-full">
-              {' '}
-              {/* Remove max-w-4xl to allow full width */}
               {currentLesson.contentItems ? (
                 currentLesson.contentItems.map((contentItem: any) => {
                   // Extract file information based on block type
@@ -256,9 +316,10 @@ const CourseStudyPageClient = ({ course }: CourseStudyPageClientProps) => {
 
                     fileInfo = potentialFileInfo
                   }
+
                   // Create the adapted content item with all possible file properties
                   const adaptedContentItem: ExtendedContentItem = {
-                    id: contentItem.id || `item-${Math.random().toString(36).substr(2, 9)}`,
+                    id: contentItem.id || '',
                     blockType: contentItem.blockType,
                     title:
                       contentItem.blockType === 'quizQuestion'
@@ -276,6 +337,19 @@ const CourseStudyPageClient = ({ course }: CourseStudyPageClientProps) => {
                     docUrl: contentItem.blockType === 'docContent' ? fileInfo.fileName : undefined,
                     fileName: fileInfo.fileName || '',
                     fileType: fileInfo.fileType || '',
+                    // Add quiz-specific fields
+                    question:
+                      contentItem.blockType === 'quizQuestion' ? contentItem.question : undefined,
+                    options:
+                      contentItem.blockType === 'quizQuestion' ? contentItem.options : undefined,
+                    explanation:
+                      contentItem.blockType === 'quizQuestion'
+                        ? contentItem.explanation
+                        : undefined,
+                    questionType:
+                      contentItem.blockType === 'quizQuestion'
+                        ? contentItem.questionType
+                        : undefined,
                   }
 
                   return (
@@ -287,6 +361,79 @@ const CourseStudyPageClient = ({ course }: CourseStudyPageClientProps) => {
                   <div className="text-center text-gray-500">لا يوجد محتوى لهذا الدرس</div>
                 </div>
               )}
+            </div>
+
+            {/* Updated Comments Section */}
+            <div className="mt-8 bg-white rounded-lg shadow p-4">
+              <h3 className="text-lg font-bold mb-3">التعليقات</h3>
+              {/* Notice about comment moderation */}
+              <div className="mb-4 bg-blue-50 p-3 rounded-md text-xs text-blue-700 border border-blue-100">
+                <p>سيتم مراجعة التعليقات قبل نشرها. يرجى الالتزام بقواعد المجتمع.</p>
+              </div>
+
+              {/* Comments list */}
+              <div className="space-y-3 mb-4 max-h-80 overflow-y-auto">
+                {isLoading ? (
+                  <p className="text-gray-500 text-center py-4">جاري تحميل التعليقات...</p>
+                ) : !comments || comments.length === 0 ? (
+                  <p className="text-gray-500 text-center py-4">لا توجد تعليقات حتى الآن.</p>
+                ) : (
+                  comments.map((comment) => {
+                    console.log('Rendering comment:', comment) // Debug log
+
+                    if (typeof comment?.createdBy === 'object' && comment.createdBy !== null)
+                      return (
+                        <div
+                          key={comment.id}
+                          className="bg-gray-50 p-3 rounded-md border border-gray-100 flex items-start"
+                        >
+                          <Image
+                            src={gravatar.url(comment?.createdBy?.email, {
+                              s: '32',
+                              d: 'retro',
+                            })}
+                            alt={comment?.createdBy?.fullName || 'Anonymous'}
+                            width={32}
+                            height={32}
+                            className="rounded-full ml-2 object-cover"
+                            unoptimized
+                          />
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between">
+                              <h4 className="font-medium text-gray-800 text-sm">
+                                {comment?.createdBy?.fullName || 'Anonymous'}
+                              </h4>
+                              <p className="text-xs text-gray-500">
+                                {new Date(comment.createdAt).toLocaleDateString()}
+                              </p>
+                            </div>
+                            <p className="text-gray-700 mt-1 text-sm">{comment.content}</p>
+                          </div>
+                        </div>
+                      )
+                  })
+                )}
+              </div>
+              {/* Comment form */}
+              <div className="mt-3">
+                <textarea
+                  className="w-full p-2 border border-gray-300 rounded-md text-sm resize-none"
+                  placeholder="أضف تعليقًا..."
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  rows={2}
+                />
+                <div className="flex justify-between items-center mt-2">
+                  <span className="text-xs text-gray-500">أقصى عدد للحروف: 500</span>
+                  <button
+                    className="px-3 py-1 bg-[#91be3f] text-white rounded-md hover:bg-[#82aa39] transition-colors text-sm"
+                    onClick={handleCommentSubmit}
+                    disabled={!newComment.trim()}
+                  >
+                    إرسال
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -335,6 +482,7 @@ const CourseStudyPageClient = ({ course }: CourseStudyPageClientProps) => {
           </div>
         </div>
       </main>
+
       {/* Right Sidebar - Fixed Position */}
       <aside
         className="bg-[#253b74] text-white fixed right-0 top-0 h-full z-20 transition-all duration-300"
@@ -373,7 +521,7 @@ const CourseStudyPageClient = ({ course }: CourseStudyPageClientProps) => {
                     className={`w-full p-3 text-right flex items-center rounded ${
                       expandedSection === sIndex ? 'bg-[#91be3f] text-white' : 'hover:bg-[#1a2c5a]'
                     }`}
-                    onClick={() => toggleSection(sIndex)}
+                    //onClick={() => toggleSection(sIndex)}
                   >
                     <div className="flex items-center flex-1">
                       <div className="ml-2">
@@ -397,7 +545,7 @@ const CourseStudyPageClient = ({ course }: CourseStudyPageClientProps) => {
                         transition={{ duration: 0.3 }}
                         className="mr-4 border-r border-[#1a2c5a] pr-2 mt-1"
                       >
-                        {(section.lessons ?? []).map((lesson, lIndex) => (
+                        {(section.lessons ?? []).map((lesson: any, lIndex: number) => (
                           <button
                             key={lIndex}
                             className={`w-full p-2 text-right flex items-center text-sm rounded my-1 ${
@@ -433,6 +581,7 @@ const CourseStudyPageClient = ({ course }: CourseStudyPageClientProps) => {
           </div>
         </div>
       </aside>
+
       {/* Mobile overlay - only shown on small screens when sidebar is open */}
       {sidebarOpen && (
         <div

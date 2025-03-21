@@ -1,7 +1,7 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-
+import * as mammoth from 'mammoth'
 import { useState, useEffect, useRef } from 'react'
 //import { Document, Page } from 'react-pdf'
 import { Spreadsheet } from 'react-spreadsheet'
@@ -10,6 +10,7 @@ import { ChevronRight, ChevronLeft, Download, Maximize, Minimize } from 'lucide-
 // Set up PDF.js worker with a fallback mechanism
 //import * as pdfjs from 'pdfjs-dist'
 import { pdfjs } from 'react-pdf'
+import CustomVideoPlayer from './CustomVideoPlayer'
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`
 
 // Use a CDN for the worker script
@@ -51,11 +52,12 @@ interface DocContentProps {
 }
 
 // Video Content Viewer
+// Adjust the import path as necessary
+
 export const VideoContentViewer = ({ url, title }: VideoContentProps) => {
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-  const videoRef = useRef<HTMLVideoElement>(null)
 
   // Handle fullscreen changes
   useEffect(() => {
@@ -69,29 +71,6 @@ export const VideoContentViewer = ({ url, title }: VideoContentProps) => {
     }
   }, [])
 
-  // Handle video loading events
-  useEffect(() => {
-    const videoElement = videoRef.current
-    if (!videoElement) return
-
-    const handleLoadedData = () => {
-      setLoading(false)
-    }
-
-    const handleError = () => {
-      setLoading(false)
-      setError('Failed to load the video. Please try again.')
-    }
-
-    videoElement.addEventListener('loadeddata', handleLoadedData)
-    videoElement.addEventListener('error', handleError)
-
-    return () => {
-      videoElement.removeEventListener('loadeddata', handleLoadedData)
-      videoElement.removeEventListener('error', handleError)
-    }
-  }, [url])
-
   // Handle empty URLs
   if (!url) {
     return (
@@ -99,23 +78,6 @@ export const VideoContentViewer = ({ url, title }: VideoContentProps) => {
         <div className="text-center text-gray-600">No video URL provided</div>
       </div>
     )
-  }
-
-  const toggleFullscreen = () => {
-    const videoElement = videoRef.current
-    if (!videoElement) return
-
-    if (!document.fullscreenElement) {
-      if (videoElement.requestFullscreen) {
-        videoElement.requestFullscreen()
-        setIsFullscreen(true)
-      }
-    } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen()
-        setIsFullscreen(false)
-      }
-    }
   }
 
   return (
@@ -135,9 +97,6 @@ export const VideoContentViewer = ({ url, title }: VideoContentProps) => {
               onClick={() => {
                 setError(null)
                 setLoading(true)
-                if (videoRef.current) {
-                  videoRef.current.load()
-                }
               }}
               className="mt-2 px-4 py-2 bg-blue-500 text-white rounded"
             >
@@ -145,22 +104,13 @@ export const VideoContentViewer = ({ url, title }: VideoContentProps) => {
             </button>
           </div>
         ) : (
-          <video
-            ref={videoRef}
-            id="course-video"
-            src={url}
-            className="w-full h-auto"
-            controls
-            controlsList="nodownload"
+          <CustomVideoPlayer
+            url="/api/videos/file/arabic-video.mp4"
+            title="فيديو باللغة العربية"
+            isRTL={true}
+            onError={(error) => console.error('Video error:', error)}
           />
         )}
-
-        <button
-          onClick={toggleFullscreen}
-          className="absolute top-3 right-3 bg-gray-800 bg-opacity-70 text-white p-2 rounded-full hover:bg-opacity-90"
-        >
-          {isFullscreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
-        </button>
       </div>
     </div>
   )
@@ -245,7 +195,7 @@ export const PDFContentViewer = ({ url, title }: PDFContentProps) => {
             disabled={pageNumber <= 1}
             className="p-1 rounded hover:bg-gray-200 disabled:opacity-50"
           >
-            <ChevronLeft className="h-5 w-5" />
+            <ChevronRight className="h-5 w-5" />
           </button>
           <span className="mx-2 text-sm">
             {pageNumber} / {numPages || '?'}
@@ -255,7 +205,7 @@ export const PDFContentViewer = ({ url, title }: PDFContentProps) => {
             disabled={!numPages || pageNumber >= numPages}
             className="p-1 rounded hover:bg-gray-200 disabled:opacity-50"
           >
-            <ChevronRight className="h-5 w-5" />
+            <ChevronLeft className="h-5 w-5" />
           </button>
         </div>
 
@@ -511,13 +461,77 @@ export const ExcelContentViewer = ({ url, title }: ExcelContentProps) => {
   )
 }
 
-// Doc Content Viewer (for Word documents)
 export const DocContentViewer = ({ url, title }: DocContentProps) => {
-  // Handle empty URLs
-  if (!url) {
+  const [docContent, setDocContent] = useState<string>('')
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // Process the URL to ensure it's correctly formatted
+  const processedUrl = url
+    ? url.startsWith('http') || url.startsWith('/')
+      ? url
+      : `/api/files?fileName=${encodeURIComponent(url)}`
+    : ''
+
+  useEffect(() => {
+    const loadDoc = async () => {
+      try {
+        setLoading(true)
+        // Fetch the document
+        const response = await fetch(processedUrl)
+        if (!response.ok) {
+          throw new Error(`Failed to fetch document: ${response.status}`)
+        }
+
+        // Get document as array buffer
+        const arrayBuffer = await response.arrayBuffer()
+
+        // Convert to HTML using mammoth.js
+        const result = await mammoth.convertToHtml({ arrayBuffer })
+        setDocContent(result.value)
+        setLoading(false)
+
+        // Log any warnings
+        if (result.messages.length > 0) {
+          console.warn('Mammoth warnings:', result.messages)
+        }
+      } catch (err) {
+        console.error('Error converting Word document:', err)
+        setError(err instanceof Error ? err.message : 'Failed to load document')
+        setLoading(false)
+      }
+    }
+
+    loadDoc()
+  }, [processedUrl])
+
+  if (loading) {
     return (
       <div className="bg-white rounded-lg shadow p-6">
-        <div className="text-center text-gray-600">No URL provided for Word document</div>
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mr-3"></div>
+          <span>Converting document...</span>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="text-red-500 text-center">{error}</div>
+        <div className="mt-4 text-center">
+          <a
+            href={processedUrl}
+            download
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center px-4 py-2 bg-blue-50 text-blue-600 rounded hover:bg-blue-100"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Download File
+          </a>
+        </div>
       </div>
     )
   }
@@ -529,7 +543,7 @@ export const DocContentViewer = ({ url, title }: DocContentProps) => {
       <div className="flex justify-between items-center p-2 bg-gray-100 border-b">
         <span className="text-sm text-gray-500">Word Document</span>
         <a
-          href={url}
+          href={processedUrl}
           download
           target="_blank"
           rel="noopener noreferrer"
@@ -540,21 +554,37 @@ export const DocContentViewer = ({ url, title }: DocContentProps) => {
         </a>
       </div>
 
-      <div className="p-6 text-center">
-        <p className="mb-4 text-gray-700">
-          Word documents cannot be viewed directly. Please download the file to view it.
-        </p>
-        <a
-          href={url}
-          download
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-        >
-          <Download className="h-5 w-5 mr-2" />
-          Download File
-        </a>
-      </div>
+      {docContent ? (
+        <div className="p-6 overflow-auto max-h-screen">
+          <div
+            className="doc-content"
+            dangerouslySetInnerHTML={{ __html: docContent }}
+            style={{
+              fontFamily: 'Calibri, Arial, sans-serif',
+              lineHeight: '1.5',
+              color: '#333',
+            }}
+          />
+        </div>
+      ) : (
+        <div className="p-6 text-center">
+          <p className="mb-4 text-gray-700">
+            Could not preview this document. Please download it to view properly.
+          </p>
+          <a
+            href={processedUrl}
+            download
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            <Download className="h-5 w-5 mr-2" />
+            Download File
+          </a>
+        </div>
+      )}
     </div>
   )
 }
+
+export default DocContentViewer
