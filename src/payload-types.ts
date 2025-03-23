@@ -68,6 +68,7 @@ export interface Config {
   };
   blocks: {};
   collections: {
+    articulateCourses: ArticulateCourse;
     file: File;
     media: Media;
     categories: Category;
@@ -89,6 +90,7 @@ export interface Config {
   };
   collectionsJoins: {};
   collectionsSelect: {
+    articulateCourses: ArticulateCoursesSelect<false> | ArticulateCoursesSelect<true>;
     file: FileSelect<false> | FileSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     categories: CategoriesSelect<false> | CategoriesSelect<true>;
@@ -182,6 +184,27 @@ export interface BusinessAcountAuthOperations {
     email: string;
     password: string;
   };
+}
+/**
+ * Upload Articulate CMi5 courses here.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "articulateCourses".
+ */
+export interface ArticulateCourse {
+  id: number;
+  title: string;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -643,6 +666,10 @@ export interface Exam {
    */
   description?: string | null;
   /**
+   * The course this exam belongs to
+   */
+  course: number | Course;
+  /**
    * Maximum time allowed for completion
    */
   timeLimit?: number | null;
@@ -670,7 +697,7 @@ export interface Exam {
     trueFalseOptions?:
       | {
           statementText: string;
-          isTrue?: boolean | null;
+          isTrue?: ('true' | 'false') | null;
           id?: string | null;
         }[]
       | null;
@@ -692,9 +719,90 @@ export interface Exam {
    * Maximum number of attempts allowed
    */
   maxAttempts?: number | null;
+  /**
+   * Number of submissions for this exam
+   */
+  submissionCount?: number | null;
+  /**
+   * List of submissions for this exam
+   */
+  submissions?: (number | ExamSubmission)[] | null;
   status: 'draft' | 'published' | 'archived';
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * Track exam submissions from clients
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "exam-submissions".
+ */
+export interface ExamSubmission {
+  id: number;
+  client: number | IndividualAccount;
+  course: number | Course;
+  exam: number | Exam;
+  answers: {
+    /**
+     * Index of the question in the exam
+     */
+    questionIndex: number;
+    questionType: 'multiple-choice' | 'true-false' | 'short-answer';
+    selectedOptions?:
+      | {
+          optionIndex: number;
+          selected: boolean;
+          id?: string | null;
+        }[]
+      | null;
+    trueFalseResponses?:
+      | {
+          statementIndex: number;
+          markedTrue: boolean;
+          id?: string | null;
+        }[]
+      | null;
+    shortAnswerResponse?: string | null;
+    isCorrect?: boolean | null;
+    pointsEarned?: number | null;
+    id?: string | null;
+  }[];
+  /**
+   * Calculated score after submission
+   */
+  score?: number | null;
+  submissionDate: string;
+  timeSpent?: number | null;
+  status: 'pending' | 'graded' | 'failed';
+  /**
+   * Optional feedback for the student
+   */
+  feedback?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "individualAccount".
+ */
+export interface IndividualAccount {
+  id: number;
+  fullName: string;
+  phone?: string | null;
+  fieldOfWork: 'management' | 'finance' | 'marketing' | 'digital' | 'logistics' | 'hr' | 'production' | 'it' | 'safety';
+  agreeToTerms: boolean;
+  marketingConsent?: boolean | null;
+  status?: ('active' | 'pending' | 'completed' | 'cancelled') | null;
+  updatedAt: string;
+  createdAt: string;
+  email: string;
+  resetPasswordToken?: string | null;
+  resetPasswordExpiration?: string | null;
+  salt?: string | null;
+  hash?: string | null;
+  loginAttempts?: number | null;
+  lockUntil?: string | null;
+  password?: string | null;
 }
 /**
  * Course reviews and ratings from users
@@ -735,36 +843,13 @@ export interface Coursereview {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "individualAccount".
- */
-export interface IndividualAccount {
-  id: number;
-  fullName: string;
-  phone?: string | null;
-  fieldOfWork: 'management' | 'finance' | 'marketing' | 'digital' | 'logistics' | 'hr' | 'production' | 'it' | 'safety';
-  agreeToTerms: boolean;
-  marketingConsent?: boolean | null;
-  status?: ('active' | 'pending' | 'completed' | 'cancelled') | null;
-  updatedAt: string;
-  createdAt: string;
-  email: string;
-  resetPasswordToken?: string | null;
-  resetPasswordExpiration?: string | null;
-  salt?: string | null;
-  hash?: string | null;
-  loginAttempts?: number | null;
-  lockUntil?: string | null;
-  password?: string | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "participation".
  */
 export interface Participation {
   id: number;
   client: number | IndividualAccount;
   course: number | Course;
-  status: 'pending' | 'enrolled' | 'paid' | 'completed';
+  status: 'pending' | 'enrolled';
   paymentStatus?: ('unpaid' | 'paid' | 'failed') | null;
   /**
    * Automatically set when exam is graded successfully
@@ -828,62 +913,16 @@ export interface Certificate {
   createdAt: string;
 }
 /**
- * Track exam submissions from clients
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "exam-submissions".
- */
-export interface ExamSubmission {
-  id: number;
-  client: number | IndividualAccount;
-  course: number | Course;
-  exam: number | Exam;
-  answers: {
-    /**
-     * Index of the question in the exam
-     */
-    questionIndex: number;
-    questionType: 'multiple-choice' | 'true-false' | 'short-answer';
-    selectedOptions?:
-      | {
-          optionIndex: number;
-          selected: boolean;
-          id?: string | null;
-        }[]
-      | null;
-    trueFalseResponses?:
-      | {
-          statementIndex: number;
-          markedTrue: boolean;
-          id?: string | null;
-        }[]
-      | null;
-    shortAnswerResponse?: string | null;
-    isCorrect?: boolean | null;
-    pointsEarned?: number | null;
-    id?: string | null;
-  }[];
-  /**
-   * Calculated score after submission
-   */
-  score?: number | null;
-  submissionDate: string;
-  timeSpent?: number | null;
-  status: 'pending' | 'graded' | 'failed';
-  /**
-   * Optional feedback for the student
-   */
-  feedback?: string | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-locked-documents".
  */
 export interface PayloadLockedDocument {
   id: number;
   document?:
+    | ({
+        relationTo: 'articulateCourses';
+        value: number | ArticulateCourse;
+      } | null)
     | ({
         relationTo: 'file';
         value: number | File;
@@ -1003,6 +1042,24 @@ export interface PayloadMigration {
   batch?: number | null;
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "articulateCourses_select".
+ */
+export interface ArticulateCoursesSelect<T extends boolean = true> {
+  title?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1430,6 +1487,7 @@ export interface VideosSelect<T extends boolean = true> {
 export interface ExamsSelect<T extends boolean = true> {
   title?: T;
   description?: T;
+  course?: T;
   timeLimit?: T;
   passingScore?: T;
   questions?:
@@ -1466,6 +1524,8 @@ export interface ExamsSelect<T extends boolean = true> {
   showResults?: T;
   allowRetakes?: T;
   maxAttempts?: T;
+  submissionCount?: T;
+  submissions?: T;
   status?: T;
   updatedAt?: T;
   createdAt?: T;

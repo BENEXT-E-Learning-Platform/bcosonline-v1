@@ -883,7 +883,11 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ course }) => {
                 >
                   {isPlaying ? 'Pause Course' : 'Start Course'}
                 </button>
-                <EnrollButton courseId={course.id} />
+
+                <EnrollButton
+                  courseId={String(course.id)}
+                  firstSectionId={String(course.sections?.[0]?.order ?? '')}
+                />
               </div>
             </motion.div>
           </div>

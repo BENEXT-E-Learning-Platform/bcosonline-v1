@@ -58,6 +58,25 @@ export const VideoContentViewer = ({ url, title }: VideoContentProps) => {
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [processedUrl, setProcessedUrl] = useState('')
+
+  // Process the URL when component mounts or URL changes
+  useEffect(() => {
+    if (!url) {
+      setError('No video URL provided')
+      setLoading(false)
+      return
+    }
+
+    // Process the URL to ensure it's correctly formatted
+    const formattedUrl =
+      url.startsWith('http') || url.startsWith('/')
+        ? url
+        : `/api/files?fileName=${encodeURIComponent(url)}`
+
+    setProcessedUrl(formattedUrl)
+    setLoading(false)
+  }, [url])
 
   // Handle fullscreen changes
   useEffect(() => {
@@ -70,12 +89,36 @@ export const VideoContentViewer = ({ url, title }: VideoContentProps) => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange)
     }
   }, [])
-
-  // Handle empty URLs
-  if (!url) {
+  const extractVideoId = (url: string) => {
+    if (url.includes('?fileName=')) {
+      // For URLs like /api/files?fileName=path/to/file.mp4
+      return decodeURIComponent(url.split('?fileName=')[1])
+    } else {
+      // For direct URLs, just get the filename
+      return url.split('/').pop() || 'default-video-id'
+    }
+  }
+  // Handle empty URLs or errors
+  if (!url || error) {
     return (
       <div className="bg-white rounded-lg shadow p-6">
-        <div className="text-center text-gray-600">No video URL provided</div>
+        <div className="text-center text-red-500">
+          {error || 'No video URL provided'}
+          {error && (
+            <div className="mt-4">
+              <a
+                href={processedUrl}
+                download
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center px-4 py-2 bg-blue-50 text-blue-600 rounded hover:bg-blue-100"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download Video
+              </a>
+            </div>
+          )}
+        </div>
       </div>
     )
   }
@@ -90,27 +133,16 @@ export const VideoContentViewer = ({ url, title }: VideoContentProps) => {
           </div>
         )}
 
-        {error ? (
-          <div className="p-6 text-center text-red-500">
-            <p>{error}</p>
-            <button
-              onClick={() => {
-                setError(null)
-                setLoading(true)
-              }}
-              className="mt-2 px-4 py-2 bg-blue-500 text-white rounded"
-            >
-              Retry
-            </button>
-          </div>
-        ) : (
-          <CustomVideoPlayer
-            url="/api/videos/file/arabic-video.mp4"
-            title="فيديو باللغة العربية"
-            isRTL={true}
-            onError={(error) => console.error('Video error:', error)}
-          />
-        )}
+        <CustomVideoPlayer
+          url={processedUrl}
+          videoId={extractVideoId(url)}
+          title={title || 'Video Player'}
+          bucketName={process.env.MINIO_BUCKET}
+          onError={(e) => {
+            console.error('Video error:', e)
+            setError('Failed to load video. Please try downloading it instead.')
+          }}
+        />
       </div>
     </div>
   )
@@ -241,7 +273,7 @@ export const PDFContentViewer = ({ url, title }: PDFContentProps) => {
           </div>
         ) : (
           <Document
-            file={processedUrl} // Use the actual PDF URL instead of Mozilla viewer
+            file={processedUrl}
             onLoadSuccess={onDocumentLoadSuccess}
             onLoadError={onDocumentLoadError}
             loading={<div className="flex justify-center p-10">Loading PDF...</div>}

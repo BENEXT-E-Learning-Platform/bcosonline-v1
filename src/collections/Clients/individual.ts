@@ -12,10 +12,35 @@ export const individualAccount: CollectionConfig = {
     read: ({ req: { user } }) => (user ? { id: { equals: user.id.toString() } } : false), // Only read own data
     update: ({ req: { user } }) => (user ? { id: { equals: user.id.toString() } } : false), // Only update own data
   },
-  auth: true,
+  auth: {
+    verify: false,
+    tokenExpiration: 7200, // 2 hours
+    cookies: {
+      secure: process.env.NODE_ENV === 'production',
+    },
+    useAPIKey: false,
+    depth: 0,
+  },
   fields: [
-    { name: 'fullName', label: 'Full Name', type: 'text', required: true },
-    { name: 'phone', label: 'Phone Number', type: 'text' },
+    {
+      name: 'email',
+      type: 'email',
+      label: 'Email',
+      unique: true,
+      required: true,
+      index: true,
+    },
+    {
+      name: 'fullName',
+      label: 'Full Name',
+      type: 'text',
+      required: true,
+    },
+    {
+      name: 'phone',
+      label: 'Phone Number',
+      type: 'text',
+    },
     {
       name: 'fieldOfWork',
       label: 'Field of Work',
@@ -36,8 +61,18 @@ export const individualAccount: CollectionConfig = {
       ],
       required: true,
     },
-    { name: 'agreeToTerms', label: 'Terms and Conditions', type: 'checkbox', required: true },
-    { name: 'marketingConsent', label: 'Marketing Consent', type: 'checkbox', defaultValue: false },
+    {
+      name: 'agreeToTerms',
+      label: 'Terms and Conditions',
+      type: 'checkbox',
+      required: true,
+    },
+    {
+      name: 'marketingConsent',
+      label: 'Marketing Consent',
+      type: 'checkbox',
+      defaultValue: false,
+    },
     {
       name: 'status',
       label: 'Status',

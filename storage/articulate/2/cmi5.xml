@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<courseStructure xmlns="https://w3id.org/xapi/profiles/cmi5/v1/CourseStructure.xsd">
+  <course id="http://Hz0ZKWYKaYGXvWG-ic3MmmcrZmSPx8gO_rise/course">
+    <title>
+      <langstring lang="en-US">course aw</langstring>
+    </title>
+    <description>
+      <langstring lang="en-US"></langstring>
+    </description>
+  </course>
+  <objectives>
+          <objective id="http://Hz0ZKWYKaYGXvWG-ic3MmmcrZmSPx8gO_rise/objective/wlseBpfKLdUHrV6ax-PwxYKlJzCi2IAL">
+        <title>
+          <langstring lang="en-US">
+            lwesson 12
+          </langstring>
+        </title>
+        <description>
+          <langstring lang="en-US">
+            
+          </langstring>
+        </description>
+      </objective>
+          <objective id="http://Hz0ZKWYKaYGXvWG-ic3MmmcrZmSPx8gO_rise/objective/0k8-k1lVFmyFyYh7SiXX1uyLsu0gE77Z">
+        <title>
+          <langstring lang="en-US">
+            lessonm3 
+          </langstring>
+        </title>
+        <description>
+          <langstring lang="en-US">
+            
+          </langstring>
+        </description>
+      </objective>
+          <objective id="http://Hz0ZKWYKaYGXvWG-ic3MmmcrZmSPx8gO_rise/objective/Ni_Pljwg8ejTfQga_bqgTb7JwwdTpJBN">
+        <title>
+          <langstring lang="en-US">
+            lesson 4 
+          </langstring>
+        </title>
+        <description>
+          <langstring lang="en-US">
+            
+          </langstring>
+        </description>
+      </objective>
+      </objectives>
+  
+  <au id="http://Hz0ZKWYKaYGXvWG-ic3MmmcrZmSPx8gO_rise/activity" launchMethod="OwnWindow" moveOn="Completed"  >
+    <title>
+      <langstring lang="en">
+        course aw
+      </langstring>
+    </title>
+    <description>
+      <langstring lang="en">
+        
+      </langstring>
+    </description>
+    <objectives>
+              <objective idref="http://Hz0ZKWYKaYGXvWG-ic3MmmcrZmSPx8gO_rise/objective/wlseBpfKLdUHrV6ax-PwxYKlJzCi2IAL" />
+              <objective idref="http://Hz0ZKWYKaYGXvWG-ic3MmmcrZmSPx8gO_rise/objective/0k8-k1lVFmyFyYh7SiXX1uyLsu0gE77Z" />
+              <objective idref="http://Hz0ZKWYKaYGXvWG-ic3MmmcrZmSPx8gO_rise/objective/Ni_Pljwg8ejTfQga_bqgTb7JwwdTpJBN" />
+          </objectives>
+    <url>scormdriver/indexAPI.html</url>
+    <launchParameters>eyJjcHYiOiJocUxXQVhYQSIsInJsZCI6ZmFsc2V9</launchParameters>
+  </au>
+</courseStructure>

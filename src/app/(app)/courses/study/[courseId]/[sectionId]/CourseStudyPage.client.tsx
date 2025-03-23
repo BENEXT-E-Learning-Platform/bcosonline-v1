@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { Course } from '@/payload-types'
 import { ChevronRight, ChevronLeft, CheckCircle, Circle, Menu } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
 import Image from 'next/image'
 
 import gravatar from 'gravatar'
@@ -148,6 +147,14 @@ const CourseStudyPageClient = ({ course, section }: CourseStudyPageClientProps) 
     // Simulate loading time for content transition
     setTimeout(() => setIsLoading(false), 300)
   }
+  // First, add this function near your other navigation functions:
+  const navigateToNextSection = () => {
+    if (!course?.sections) return
+    const currentSectionIndex = course.sections.findIndex((s) => s.id === section.id)
+    if (currentSectionIndex < course.sections.length - 1) {
+      navigateToSection(currentSectionIndex + 1)
+    }
+  }
 
   const navigateToNext = () => {
     if (!section?.lessons) return
@@ -163,10 +170,6 @@ const CourseStudyPageClient = ({ course, section }: CourseStudyPageClientProps) 
 
   const navigateToSection = (sectionOrder: number) => {
     window.location.href = `/courses/study/${course.id}/${sectionOrder}`
-  }
-  const handleSectionClick = (sectionIndex: number, sectionOrder: number) => {
-    setExpandedSection(sectionOrder)
-    navigateToSection(sectionOrder)
   }
 
   const currentLesson = section?.lessons?.[currentLessonIndex] ?? {
@@ -472,11 +475,27 @@ const CourseStudyPageClient = ({ course, section }: CourseStudyPageClientProps) 
               </button>
 
               <button
-                onClick={navigateToNext}
+                onClick={() => {
+                  const isLastLesson = currentLessonIndex === (section.lessons?.length || 0) - 1
+                  if (isLastLesson) {
+                    navigateToNextSection()
+                  } else {
+                    navigateToNext()
+                  }
+                }}
                 className="flex items-center px-4 py-2 bg-white border border-gray-300 rounded text-gray-700"
               >
-                الدرس التالي
-                <ChevronLeft className="h-4 w-4 mr-1" />
+                {currentLessonIndex === (section.lessons?.length || 0) - 1 ? (
+                  <>
+                    القسم التالي
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                  </>
+                ) : (
+                  <>
+                    الدرس التالي
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -510,73 +529,50 @@ const CourseStudyPageClient = ({ course, section }: CourseStudyPageClientProps) 
               ></div>
             </div>
           </div>
-
-          {/* Course Sections */}
+          {/* Current Section Lessons */}
           <div className="flex-1 overflow-y-auto overflow-x-hidden">
             <div className="p-2">
-              {course.sections?.map((section, sIndex) => (
-                <div key={sIndex} className="mb-1">
-                  {/* Section Header */}
-                  <button
-                    className={`w-full p-3 text-right flex items-center rounded ${
-                      expandedSection === sIndex ? 'bg-[#91be3f] text-white' : 'hover:bg-[#1a2c5a]'
-                    }`}
-                    //onClick={() => toggleSection(sIndex)}
-                  >
-                    <div className="flex items-center flex-1">
-                      <div className="ml-2">
-                        {expandedSection === sIndex ? (
-                          <ChevronRight className="h-4 w-4" />
-                        ) : (
-                          <ChevronLeft className="h-4 w-4" />
-                        )}
-                      </div>
-                      <span className="text-sm truncate">{section.title || 'قسم بدون عنوان'}</span>
+              {/* Section Header */}
+              <div className="mb-1">
+                <div className="w-full p-3 text-right flex items-center rounded bg-[#91be3f] text-white">
+                  <div className="flex items-center flex-1">
+                    <div className="ml-2">
+                      <ChevronRight className="h-4 w-4" />
                     </div>
-                  </button>
-
-                  {/* Section Lessons */}
-                  <AnimatePresence>
-                    {expandedSection === sIndex && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        transition={{ duration: 0.3 }}
-                        className="mr-4 border-r border-[#1a2c5a] pr-2 mt-1"
-                      >
-                        {(section.lessons ?? []).map((lesson: any, lIndex: number) => (
-                          <button
-                            key={lIndex}
-                            className={`w-full p-2 text-right flex items-center text-sm rounded my-1 ${
-                              sIndex === currentSectionIndex && lIndex === currentLessonIndex
-                                ? 'bg-[#1a2c5a] text-white'
-                                : 'hover:bg-[#1a2c5a]'
-                            }`}
-                            onClick={() => {
-                              setIsLoading(true)
-                              setCurrentSectionIndex(sIndex)
-                              setCurrentLessonIndex(lIndex)
-                              setTimeout(() => setIsLoading(false), 300)
-                            }}
-                          >
-                            <div className="flex items-center">
-                              <div className="ml-2">
-                                {completedLessons.has(`${section.id}-${lIndex}`) ? (
-                                  <CheckCircle className="h-4 w-4 text-[#91be3f]" />
-                                ) : (
-                                  <Circle className="h-4 w-4 text-[#253b74]" />
-                                )}
-                              </div>
-                              <span className="truncate">{lesson.title || 'درس بدون عنوان'}</span>
-                            </div>
-                          </button>
-                        ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                    <span className="text-sm truncate">{section.title || 'قسم بدون عنوان'}</span>
+                  </div>
                 </div>
-              ))}
+
+                {/* Section Lessons */}
+                <div className="mr-4 border-r border-[#1a2c5a] pr-2 mt-1">
+                  {(section.lessons ?? []).map((lesson: any, lIndex: number) => (
+                    <button
+                      key={lIndex}
+                      className={`w-full p-2 text-right flex items-center text-sm rounded my-1 ${
+                        lIndex === currentLessonIndex
+                          ? 'bg-[#1a2c5a] text-white'
+                          : 'hover:bg-[#1a2c5a]'
+                      }`}
+                      onClick={() => {
+                        setIsLoading(true)
+                        setCurrentLessonIndex(lIndex)
+                        setTimeout(() => setIsLoading(false), 300)
+                      }}
+                    >
+                      <div className="flex items-center">
+                        <div className="ml-2">
+                          {completedLessons.has(`${section.id}-${lIndex}`) ? (
+                            <CheckCircle className="h-4 w-4 text-[#91be3f]" />
+                          ) : (
+                            <Circle className="h-4 w-4 text-[#253b74]" />
+                          )}
+                        </div>
+                        <span className="truncate">{lesson.title || 'درس بدون عنوان'}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>
