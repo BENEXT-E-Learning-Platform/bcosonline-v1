@@ -1,5 +1,6 @@
 // collections/Participation.ts
 import { authenticated } from '@/access/authenticated'
+import { isSuperAdmin } from '@/access/IsUserRole'
 import type { CollectionConfig } from 'payload'
 
 export const Participation: CollectionConfig = {
@@ -12,7 +13,8 @@ export const Participation: CollectionConfig = {
   access: {
     create: authenticated, // Authenticated clients can enroll
     read: authenticated, // Only read own enrollments
-    update: ({ req: { user } }) => (user ? { client: { equals: user.id.toString() } } : false), // Only read own enrollments
+    update: isSuperAdmin,
+    delete: isSuperAdmin, // Only read own enrollments
   },
   fields: [
     {
@@ -35,8 +37,6 @@ export const Participation: CollectionConfig = {
       options: [
         { label: 'Pending', value: 'pending' },
         { label: 'Enrolled', value: 'enrolled' },
-        { label: 'Paid', value: 'paid' }, // For paid courses
-        { label: 'Completed', value: 'completed' },
       ],
       defaultValue: 'pending',
       required: true,

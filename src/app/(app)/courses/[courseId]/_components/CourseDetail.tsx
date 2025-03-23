@@ -4,8 +4,9 @@ import React, { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import EnrollButton from './EnrollButton'
-
-import { Course as PayloadCourse } from '@/payload-types'
+import { Coursereview, Course as PayloadCourse } from '@/payload-types'
+import { Star, StarHalf, ThumbsUp } from 'lucide-react'
+import { format } from 'date-fns'
 
 interface CourseDetailProps {
   course: PayloadCourse
@@ -16,14 +17,174 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ course }) => {
   const [expandedSection, setExpandedSection] = useState<string | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [reviews, setReviews] = useState<Coursereview[]>([])
+  const [overallRating, setOverallRating] = useState(0)
+  const [reviewCount, setReviewCount] = useState(0)
+  const [reviewId, setReviewId] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
+    // Fetch reviews for this course when component mounts
+    fetchCourseReviews()
+
     // Simulate loading for smoother transitions
     const timer = setTimeout(() => {
       setIsLoading(false)
     }, 600)
     return () => clearTimeout(timer)
-  }, [])
+  }, [course.id]) // Add course.id as a dependency
+
+  const fetchCourseReviews = async () => {
+    try {
+      setIsLoading(true)
+      // Fetch reviews for this specific course using Payload API
+      const response = await fetch(`/api/coursereviews?where[course][equals]=${course.id}`)
+      const data = await response.json()
+
+      if (data.docs && data.docs.length > 0) {
+        const reviewData = data.docs[0] as Coursereview
+
+        // Set review data
+        setReviewId(String(reviewData.id))
+        setOverallRating(reviewData.overallRating)
+        setReviewCount(reviewData.reviewCount)
+
+        // Check if reviews exist and handle them properly
+        if (
+          reviewData.reviews &&
+          Array.isArray(reviewData.reviews) &&
+          reviewData.reviews.length > 0
+        ) {
+          // Filter for approved reviews and wrap them in a Coursereview structure
+          const approvedReviews = [
+            {
+              ...reviewData,
+              reviews: reviewData.reviews.filter((review) => review.status === 'approved'),
+            },
+          ]
+
+          setReviews(approvedReviews)
+        } else {
+          // No reviews available
+          setReviews([])
+        }
+      } else {
+        // Reset state if no reviews found
+        setReviewId(null)
+        setOverallRating(0)
+        setReviewCount(0)
+        setReviews([])
+      }
+    } catch (error) {
+      console.error('Error fetching course reviews:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleReviewSubmit = async (data: { rating: number; comment: string }) => {
+    try {
+      setIsSubmitting(true)
+
+      // If we already have a review document for this course
+      if (reviewId) {
+        // Add a new review to the existing document
+        const response = await fetch(`/api/coursereviews/${reviewId}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            reviews: [
+              ...reviews,
+              {
+                rating: data.rating,
+                comment: data.comment,
+                status: 'pending', // All new reviews start as pending
+                createdAt: new Date().toISOString(),
+                helpful: 0,
+                isFeatured: false,
+                // No need to specify user - it will be added by the hook
+              },
+            ],
+          }),
+        })
+
+        if (response.ok) {
+          alert('Your review has been submitted and is pending approval')
+          fetchCourseReviews() // Refresh reviews
+        } else {
+          const errorData = await response.json()
+          alert(`Failed to submit review: ${errorData.errors?.[0]?.message || 'Please try again'}`)
+        }
+      } else {
+        // Create a new review document for this course
+        const response = await fetch('/api/coursereviews', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            courseTitle: course.title, // Add the course title
+            course: course.id, // Add the course relationship
+            reviews: [
+              {
+                rating: data.rating,
+                comment: data.comment,
+                status: 'pending', // All new reviews start as pending
+                createdAt: new Date().toISOString(),
+                helpful: 0,
+                isFeatured: false,
+                // No need to specify user - it will be added by the hook
+              },
+            ],
+          }),
+        })
+
+        if (response.ok) {
+          const newReviewData = await response.json()
+          setReviewId(newReviewData.id)
+          alert('Your review has been submitted and is pending approval')
+          fetchCourseReviews() // Refresh reviews
+        } else {
+          const errorData = await response.json()
+          alert(`Failed to submit review: ${errorData.errors?.[0]?.message || 'Please try again'}`)
+        }
+      }
+    } catch (error) {
+      console.error('Error submitting review:', error)
+      alert('Failed to submit review. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+  const markReviewHelpful = async (reviewIndex: number) => {
+    if (!reviewId) return
+
+    try {
+      const updatedReviews = [...reviews]
+      updatedReviews[reviewIndex] = {
+        ...updatedReviews[reviewIndex],
+        helpful: (updatedReviews[reviewIndex].helpful ?? 0) + 1,
+      }
+
+      const response = await fetch(`/api/coursereviews/${reviewId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          reviews: updatedReviews,
+        }),
+      })
+
+      if (response.ok) {
+        fetchCourseReviews() // Refresh reviews
+      }
+    } catch (error) {
+      console.error('Error marking review as helpful:', error)
+    }
+  }
 
   const toggleSection = (sectionId: string) => {
     if (expandedSection === sectionId) {
@@ -52,16 +213,207 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ course }) => {
     hidden: { opacity: 0, x: -10 },
     show: { opacity: 1, x: 0, transition: { duration: 0.3 } },
   }
+
   const coverPhoto =
     typeof course.coverPhoto === 'object' && course.coverPhoto?.url
       ? course.coverPhoto.url
       : '/placeholder.jpg'
-
   const videoPreview =
     typeof course.videoPreview === 'object' && course.videoPreview?.url
       ? course.videoPreview.url
       : ''
-  console.log(course.videoPreview)
+
+  // ReviewStars Component
+  const ReviewStars: React.FC<{ rating: number; size?: number; className?: string }> = ({
+    rating,
+    size = 20,
+    className = '',
+  }) => {
+    const fullStars = Math.floor(rating)
+    const halfStar = rating % 1 >= 0.5
+    const emptyStars = 5 - fullStars - (halfStar ? 1 : 0)
+
+    return (
+      <div className={`flex items-center ${className}`}>
+        {Array.from({ length: fullStars }).map((_, i) => (
+          <Star key={`full-${i}`} size={size} className="text-yellow-400 fill-yellow-400" />
+        ))}
+        {halfStar && <StarHalf size={size} className="text-yellow-400 fill-yellow-400" />}
+        {Array.from({ length: emptyStars }).map((_, i) => (
+          <Star key={`empty-${i}`} size={size} className="text-gray-300" />
+        ))}
+      </div>
+    )
+  }
+
+  // ReviewSummary Component
+  const ReviewSummary: React.FC<{
+    overallRating: number
+    reviewCount: number
+    className?: string
+  }> = ({ overallRating, reviewCount, className = '' }) => {
+    return (
+      <div className={`flex items-center ${className}`}>
+        <ReviewStars rating={overallRating} />
+        <span className="ml-2 text-lg font-medium">{overallRating.toFixed(1)}</span>
+        <span className="ml-2 text-gray-500">
+          ({reviewCount} {reviewCount === 1 ? 'review' : 'reviews'})
+        </span>
+      </div>
+    )
+  }
+  // Add this temporarily to check the reviews data structure
+  console.log('Reviews data:', reviews)
+  // ReviewList Component
+  const ReviewList: React.FC<{
+    reviews: Coursereview[]
+    onMarkHelpful?: (index: number, reviewIndex: number) => void
+    className?: string
+  }> = ({ reviews, onMarkHelpful, className = '' }) => {
+    return (
+      <div className={`space-y-6 ${className}`}>
+        {reviews.length > 0 ? (
+          reviews.map((courseReview, index) =>
+            courseReview.reviews && courseReview.reviews.length > 0 ? (
+              courseReview.reviews.map((review, reviewIndex) => (
+                <div
+                  key={`${index}-${reviewIndex}`}
+                  className={`p-4 border rounded-lg ${review.isFeatured ? 'border-yellow-400 bg-yellow-50' : 'border-gray-200'}`}
+                >
+                  {review.isFeatured && (
+                    <div className="mb-2 px-2 py-1 bg-yellow-400 text-yellow-800 text-xs font-medium rounded inline-block">
+                      Featured Review
+                    </div>
+                  )}
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="font-medium">
+                        {review.user && typeof review.user === 'object'
+                          ? review.user.fullName || review.user.email || 'Anonymous User'
+                          : 'Anonymous User'}
+                      </div>
+                      <div className="text-gray-500 text-sm">
+                        {review.createdAt
+                          ? format(new Date(review.createdAt), 'MMMM d, yyyy')
+                          : 'Date not available'}
+                      </div>
+                    </div>
+                    <ReviewStars rating={review.rating} size={16} />
+                  </div>
+                  {review.comment && <div className="mt-3 text-gray-700">{review.comment}</div>}
+                  <div className="mt-4 flex items-center">
+                    <button
+                      onClick={() => onMarkHelpful && onMarkHelpful(index, reviewIndex)}
+                      className="flex items-center text-sm text-gray-500 hover:text-gray-700"
+                    >
+                      <ThumbsUp size={14} className="mr-1" />
+                      <span>Helpful ({review.helpful})</span>
+                    </button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div key={index} className="text-gray-500 text-center py-8">
+                No reviews yet for this course.
+              </div>
+            ),
+          )
+        ) : (
+          <div className="text-gray-500 text-center py-8">
+            No reviews yet. Be the first to review this course!
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // ReviewForm Component
+  const ReviewForm: React.FC<{
+    onSubmit: (data: { rating: number; comment: string }) => void
+    className?: string
+  }> = ({ onSubmit, className = '' }) => {
+    const [rating, setRating] = useState(0)
+    const [hoveredRating, setHoveredRating] = useState(0)
+    const [comment, setComment] = useState('')
+    const [isSubmitting, setIsSubmitting] = useState(false)
+
+    const handleSubmit = (e: React.FormEvent) => {
+      e.preventDefault()
+      if (rating > 0) {
+        setIsSubmitting(true)
+        onSubmit({ rating, comment })
+        setRating(0)
+        setComment('')
+      }
+    }
+
+    return (
+      <form onSubmit={handleSubmit} className={`space-y-4 ${className}`}>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Your Rating</label>
+          <div className="flex items-center">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <button
+                key={star}
+                type="button"
+                onClick={() => setRating(star)}
+                onMouseEnter={() => setHoveredRating(star)}
+                onMouseLeave={() => setHoveredRating(0)}
+                className="focus:outline-none"
+              >
+                <Star
+                  size={24}
+                  className={`${
+                    (hoveredRating || rating) >= star
+                      ? 'text-yellow-400 fill-yellow-400'
+                      : 'text-gray-300'
+                  } transition-colors`}
+                />
+              </button>
+            ))}
+            {rating > 0 && (
+              <span className="ml-2 text-sm text-gray-500">
+                {rating === 1
+                  ? 'Poor'
+                  : rating === 2
+                    ? 'Fair'
+                    : rating === 3
+                      ? 'Good'
+                      : rating === 4
+                        ? 'Very Good'
+                        : 'Excellent'}
+              </span>
+            )}
+          </div>
+        </div>
+        <div>
+          <label htmlFor="comment" className="block text-sm font-medium text-gray-700 mb-1">
+            Your Review (Optional)
+          </label>
+          <textarea
+            id="comment"
+            rows={4}
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            placeholder="Write your thoughts about this course..."
+          />
+        </div>
+        <button
+          type="submit"
+          disabled={rating === 0 || isSubmitting}
+          className={`px-4 py-2 rounded-md text-white font-medium 
+            ${
+              rating === 0 || isSubmitting
+                ? 'bg-gray-300 cursor-not-allowed'
+                : 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+            }`}
+        >
+          {isSubmitting ? 'Submitting...' : 'Submit Review'}
+        </button>
+      </form>
+    )
+  }
 
   return (
     <motion.div
@@ -115,6 +467,12 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ course }) => {
               <span className="px-3 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">
                 {course.enrollmentType}
               </span>
+              {reviewCount > 0 && (
+                <span className="px-3 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800 flex items-center">
+                  <Star size={12} className="mr-1 fill-yellow-500 text-yellow-500" />
+                  {overallRating.toFixed(1)}
+                </span>
+              )}
             </motion.div>
 
             <motion.h1
@@ -354,6 +712,16 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ course }) => {
                 >
                   Curriculum
                 </button>
+                <button
+                  onClick={() => setActiveTab('reviews')}
+                  className={`pb-2 px-4 text-sm font-medium ${
+                    activeTab === 'reviews'
+                      ? 'border-b-2 border-[#253b74] text-[#253b74]'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  Reviews {reviewCount > 0 && `(${reviewCount})`}
+                </button>
               </div>
 
               {/* Tab Content */}
@@ -452,6 +820,30 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ course }) => {
                     </motion.ul>
                   </motion.div>
                 )}
+
+                {activeTab === 'reviews' && (
+                  <motion.div
+                    key="reviews"
+                    initial="inactive"
+                    animate="active"
+                    exit="inactive"
+                    variants={tabVariants}
+                    className="mt-6"
+                  >
+                    {/* Review Summary */}
+                    <ReviewSummary overallRating={overallRating} reviewCount={reviewCount} />
+
+                    {/* Review List */}
+                    <ReviewList
+                      reviews={reviews}
+                      onMarkHelpful={markReviewHelpful}
+                      className="mt-6"
+                    />
+
+                    {/* Review Form */}
+                    <ReviewForm onSubmit={handleReviewSubmit} className="mt-6" />
+                  </motion.div>
+                )}
               </AnimatePresence>
             </motion.div>
           </div>
@@ -468,18 +860,15 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ course }) => {
                 {coverPhoto ? (
                   <>
                     {videoPreview ? (
-                      // Render video player if videoPreview.url exists
                       <video
                         controls
                         className="w-full h-full object-cover"
                         src={videoPreview}
                         poster={coverPhoto}
-                        // Optional: Show cover image as poster while video loads
                       >
                         Your browser does not support the video tag.
                       </video>
                     ) : (
-                      // Render cover image if videoPreview.url is null or undefined
                       <Image src={coverPhoto} alt={course.title} width={500} height={380} />
                     )}
                   </>
@@ -494,10 +883,11 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ course }) => {
                 >
                   {isPlaying ? 'Pause Course' : 'Start Course'}
                 </button>
-                {/* }    <button className="w-full bg-white border border-[#253b74] text-[#253b74] py-3 rounded-lg font-semibold hover:bg-[#253b74]/10 transition-colors">
-                  Enroll Now
-                </button>*/}
-                <EnrollButton courseId={course.id} />
+
+                <EnrollButton
+                  courseId={String(course.id)}
+                  firstSectionId={String(course.sections?.[0]?.order ?? '')}
+                />
               </div>
             </motion.div>
           </div>
@@ -506,5 +896,4 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ course }) => {
     </motion.div>
   )
 }
-
 export default CourseDetail

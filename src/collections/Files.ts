@@ -31,6 +31,8 @@ export const File: CollectionConfig = {
       'application/vnd.ms-excel',
       'application/x-msexcel',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       'text/csv',
     ], // Restrict to images only
   },
