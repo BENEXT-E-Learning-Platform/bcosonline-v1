@@ -1,3 +1,4 @@
+/* eslint-disable react/react-in-jsx-scope */
 'use client'
 
 import dynamic from 'next/dynamic'
@@ -124,8 +125,8 @@ export const VideoContentViewer = ({ url, title }: VideoContentProps) => {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow w-50 h-50">
-      {title && <h3 className="px-4 py-3 font-medium border-b">{title}</h3>}
+    <div className="bg-transparent rounded-lg shadow-xl w-50 h-50">
+      {title && <h3 className="bg-gray-100 px-4 py-3 font-medium border-b rounded-xl">{title}</h3>}
       <div className="relative w-full">
         {loading && (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-100 bg-opacity-50 z-10">
