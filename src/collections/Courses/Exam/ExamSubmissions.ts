@@ -184,23 +184,19 @@ export const ExamSubmissions: CollectionConfig = {
     },
   ],
   hooks: {
-    beforeChange: [
-      async ({ req, data }) => {
-        if (req.user && !data.client) {
-          data.client = req.user.id // Auto-set client to the authenticated user
-        }
-        return data
-      },
-    ],
     afterChange: [
       async ({ doc, req }) => {
         const { payload } = req
         if (doc.status === 'pending') {
           try {
-            // Auto-grade the exam
+            // Extract the exam ID (in case doc.exam is a populated object)
+            const examId =
+              typeof doc.exam === 'object' && doc.exam !== null ? doc.exam.id : doc.exam
+
+            // Fetch the exam using the correct ID
             const exam = await payload.findByID({
               collection: 'exams',
-              id: doc.exam,
+              id: examId,
             })
 
             let totalPoints = 0
@@ -217,7 +213,6 @@ export const ExamSubmissions: CollectionConfig = {
 
               // Grade based on question type
               if (question.questionType === 'multiple-choice' && answer.selectedOptions) {
-                // Check if selected options match correct options
                 const allCorrect = question.multipleChoiceOptions?.every((option, idx) => {
                   const selectedOption = answer.selectedOptions.find(
                     (so: { optionIndex: number; selected: boolean }) => so.optionIndex === idx,
@@ -230,7 +225,6 @@ export const ExamSubmissions: CollectionConfig = {
                   pointsEarned = question.points
                 }
               } else if (question.questionType === 'true-false' && answer.trueFalseResponses) {
-                // Check if true/false markings match correct answers
                 const allCorrect = question.trueFalseOptions?.every((statement, idx) => {
                   const response = answer.trueFalseResponses.find(
                     (r: { statementIndex: number; markedTrue: boolean }) =>
@@ -244,7 +238,6 @@ export const ExamSubmissions: CollectionConfig = {
                   pointsEarned = question.points
                 }
               } else if (question.questionType === 'short-answer' && answer.shortAnswerResponse) {
-                // Compare short answer against correct answer
                 const userAnswer = question.shortAnswer?.caseSensitive
                   ? answer.shortAnswerResponse
                   : answer.shortAnswerResponse?.toLowerCase()
@@ -254,7 +247,6 @@ export const ExamSubmissions: CollectionConfig = {
                   : question.shortAnswer?.correctAnswer.toLowerCase()
 
                 if (question.shortAnswer && question.shortAnswer.allowPartialMatch) {
-                  // Check if correct answer is contained in user answer or vice versa
                   if (
                     correctAnswer &&
                     (userAnswer.includes(correctAnswer) || correctAnswer.includes(userAnswer))
@@ -263,7 +255,6 @@ export const ExamSubmissions: CollectionConfig = {
                     pointsEarned = question.points
                   }
                 } else {
-                  // Exact match required
                   if (userAnswer === correctAnswer) {
                     isCorrect = true
                     pointsEarned = question.points
@@ -307,7 +298,6 @@ export const ExamSubmissions: CollectionConfig = {
               : undefined
 
             if (examConfig?.requiredToComplete && score >= exam.passingScore) {
-              // Check if this should update participation status
               await payload.update({
                 collection: 'participation',
                 where: {
@@ -315,14 +305,23 @@ export const ExamSubmissions: CollectionConfig = {
                   course: { equals: doc.course },
                 },
                 data: {
-                  status: 'completed', // Or another appropriate status
+                  status: 'enrolled', // Using an allowed status value
                 },
                 req,
               })
             }
           } catch (error) {
             console.error('Error grading exam submission:', error)
-            // Handle error appropriately
+            // Optionally update the submission status to indicate an error
+            await payload.update({
+              collection: 'exam-submissions',
+              id: doc.id,
+              data: {
+                status: 'failed',
+                feedback: 'An error occurred while grading the exam.',
+              },
+              req,
+            })
           }
         }
       },

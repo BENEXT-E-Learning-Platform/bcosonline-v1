@@ -1,15 +1,16 @@
+import { isSuperAdmin } from '@/access/IsUserRole'
 import { CollectionConfig } from 'payload'
 
 export const Exams: CollectionConfig = {
   slug: 'exams',
   admin: {
     useAsTitle: 'title',
-    defaultColumns: ['title', 'timeLimit', 'passingScore', 'status'],
+    defaultColumns: ['title', 'timeLimit', 'passingScore', 'status', 'submissionCount'],
     description: 'Create and manage exams that can be assigned to courses',
     group: 'Education',
   },
   access: {
-    create: ({ req: { user } }) => user?.collection === 'users', // Only admins can create
+    create: isSuperAdmin,
     read: ({ req: { user } }) => {
       if (!user) return false
       if (user.collection === 'users') return true // Admins can read all
@@ -18,8 +19,8 @@ export const Exams: CollectionConfig = {
       }
       return false
     },
-    update: ({ req: { user } }) => user?.collection === 'users', // Only admins can update
-    delete: ({ req: { user } }) => user?.collection === 'users', // Only admins can delete
+    update: isSuperAdmin,
+    delete: isSuperAdmin,
   },
   fields: [
     {
@@ -34,6 +35,16 @@ export const Exams: CollectionConfig = {
       label: 'Description',
       admin: {
         description: 'General information about the exam',
+      },
+    },
+    {
+      name: 'course',
+      type: 'relationship',
+      relationTo: 'courses',
+      required: true,
+      label: 'Course',
+      admin: {
+        description: 'The course this exam belongs to',
       },
     },
     {
@@ -97,7 +108,7 @@ export const Exams: CollectionConfig = {
             description: 'Point value for this question',
           },
         },
-        // Multiple Choice - multiple options with multiple correct answers possible
+        // Multiple Choice
         {
           name: 'multipleChoiceOptions',
           type: 'array',
@@ -121,7 +132,7 @@ export const Exams: CollectionConfig = {
             },
           ],
         },
-        // True/False - multiple statements that can each be marked true or false
+        // True/False
         {
           name: 'trueFalseOptions',
           type: 'array',
@@ -129,7 +140,7 @@ export const Exams: CollectionConfig = {
           admin: {
             condition: (data, siblingData) => siblingData?.questionType === 'true-false',
           },
-          minRows: 2,
+          minRows: 1, // Changed to 1 to allow single-statement T/F questions
           fields: [
             {
               name: 'statementText',
@@ -139,13 +150,20 @@ export const Exams: CollectionConfig = {
             },
             {
               name: 'isTrue',
-              type: 'checkbox',
+              type: 'radio',
+              options: [
+                { label: 'True', value: 'true' },
+                { label: 'False', value: 'false' },
+              ],
+              defaultValue: 'false',
               label: 'Is True',
-              defaultValue: false,
+              admin: {
+                layout: 'horizontal',
+              },
             },
           ],
         },
-        // Short Answer - simple text answer
+        // Short Answer
         {
           name: 'shortAnswer',
           type: 'group',
@@ -214,6 +232,27 @@ export const Exams: CollectionConfig = {
       },
     },
     {
+      name: 'submissionCount',
+      type: 'number',
+      label: 'Submission Count',
+      defaultValue: 0,
+      admin: {
+        readOnly: true,
+        description: 'Number of submissions for this exam',
+      },
+    },
+    {
+      name: 'submissions',
+      type: 'relationship',
+      relationTo: 'exam-submissions',
+      hasMany: true,
+      label: 'Submissions',
+      admin: {
+        readOnly: true,
+        description: 'List of submissions for this exam',
+      },
+    },
+    {
       name: 'status',
       type: 'select',
       options: [
@@ -240,9 +279,32 @@ export const Exams: CollectionConfig = {
                 throw new Error(`Question ${index + 1} must have at least one correct answer`)
               }
             }
+            if (question.questionType === 'true-false' && question.trueFalseOptions) {
+              const hasStatements = question.trueFalseOptions.length > 0
+              if (!hasStatements) {
+                throw new Error(`Question ${index + 1} must have at least one statement`)
+              }
+            }
           })
         }
         return data
+      },
+    ],
+    afterChange: [
+      async ({ doc, req }) => {
+        const { payload } = req
+        // Update submissionCount based on related submissions
+        const submissions = await payload.find({
+          collection: 'exam-submissions',
+          where: { exam: { equals: doc.id } },
+          limit: 0, // No limit to count all submissions
+        })
+        const submissionCount = submissions.totalDocs
+        await payload.update({
+          collection: 'exams',
+          id: doc.id,
+          data: { submissionCount },
+        })
       },
     ],
   },

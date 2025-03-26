@@ -5,6 +5,7 @@ import { Course as PayloadCourse } from '@/payload-types'
 import { notFound } from 'next/navigation'
 import CourseDetail from './_components/CourseDetail'
 import { Metadata } from 'next'
+import ClientHeader from '../../header/ClientHeader'
 
 async function getCourseData(courseId: string): Promise<PayloadCourse | undefined> {
   const payload = await getPayload({ config: configPromise })
@@ -55,5 +56,10 @@ export default async function CourseDetailPage({
     notFound()
   }
 
-  return <CourseDetail course={course} />
+  return (
+    <>
+      <ClientHeader />
+      <CourseDetail course={course} />
+    </>
+  )
 }

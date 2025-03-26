@@ -190,7 +190,7 @@ export default async function CoursesPage() {
                     {/* Action Buttons */}
                     <div className="flex flex-col gap-2">
                       <Link
-                        href={`/courses/study/${course.id}`}
+                        href={`/courses/study/${course.id}/${course.sections?.[0]?.order}`}
                         className="block w-full bg-[#91be3f] hover:bg-[#7fa82e] text-white text-center py-2 rounded-lg font-semibold transition-colors"
                       >
                         ابدأ التعلم الآن

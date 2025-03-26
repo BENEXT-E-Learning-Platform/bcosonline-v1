@@ -28,6 +28,7 @@ import { File } from '@/collections/Files'
 // Import your dashboard component properly with the right type
 // import Dashboard from './app/(payload)/dashboard' // Import the component
 import type { NextFunction, Response } from 'express'
+import { Articulate } from './collections/Courses/ArticulateCourses'
 // Import the server setup
 // Payload uses a specific type for custom components
 // import type { CustomComponent } from '@/payload-types' // Make sure to import this
@@ -77,6 +78,7 @@ export default buildConfig({
     },
   }),
   collections: [
+    Articulate,
     File,
     Media,
     Categories,
